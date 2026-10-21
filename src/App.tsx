@@ -9,7 +9,6 @@ import { FilterBar } from './components/FilterBar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { CardModal } from './components/CardModal';
 import { AdminUsersModal } from './components/AdminUsersModal';
-import { NotificationModal } from './components/NotificationModal';
 import { AccountModal } from './components/AccountModal';
 import { ToastContainer } from './components/ToastContainer';
 
@@ -39,7 +38,6 @@ export const AppContent: React.FC = () => {
   const [defaultColumnId, setDefaultColumnId] = useState<ColumnId>('todo');
 
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
 
   // Sync cards changes to storage
@@ -137,13 +135,12 @@ export const AppContent: React.FC = () => {
         {/* App Top Navigation */}
         <Header
           onOpenAdminUsers={() => setIsAdminUsersOpen(true)}
-          onOpenNotifications={() => setIsNotificationsOpen(true)}
           onOpenAccount={() => setIsAccountOpen(true)}
           onQuickAdd={() => handleOpenAddCard('todo')}
           onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
           isFilterOpen={isFilterOpen}
           totalCards={cards.length}
-          unreadCount={activities.length > 0 ? 1 : 0}
+          activities={activities}
         />
 
         {/* Collapsible Search & Filter Bar */}
@@ -196,14 +193,6 @@ export const AppContent: React.FC = () => {
             }}
             onSave={handleSaveCard}
             onDelete={handleDeleteCard}
-          />
-        )}
-
-        {/* Notifications Modal */}
-        {isNotificationsOpen && (
-          <NotificationModal
-            activities={activities}
-            onClose={() => setIsNotificationsOpen(false)}
           />
         )}
 

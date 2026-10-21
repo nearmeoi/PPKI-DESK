@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import type { CardItem as CardItemType, ColumnId } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { LABELS, COLUMNS, PRIORITY_CONFIG } from '../lib/constants';
+import { LABELS, COLUMNS, PRIORITY_CONFIG, getCardPastelTheme } from '../lib/constants';
 import { formatDate, isOverdue, cn } from '../lib/utils';
 import { AvatarGroup } from './Avatar';
 import { Calendar, ArrowRight, MoreHorizontal, AlertCircle, Lock } from 'lucide-react';
@@ -18,9 +18,10 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
   const { users, currentUser, isAdmin, avatarColorOf } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const canManage     = isAdmin || card.createdBy === currentUser.id;
-  const overdueFlag   = card.deadline ? isOverdue(card.deadline, card.columnId) : false;
-  const priorityCfg   = PRIORITY_CONFIG[card.priority] ?? PRIORITY_CONFIG.medium;
+  const canManage   = isAdmin || card.createdBy === currentUser.id;
+  const overdueFlag = card.deadline ? isOverdue(card.deadline, card.columnId) : false;
+  const priorityCfg = PRIORITY_CONFIG[card.priority] ?? PRIORITY_CONFIG.medium;
+  const pastelTheme = getCardPastelTheme(card.id);
 
   return (
     <Draggable draggableId={card.id} index={index}>
@@ -31,11 +32,13 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
           {...provided.dragHandleProps}
           onClick={onClick}
           className={cn(
-            'relative group bg-white border border-slate-200/90 rounded-2xl p-3.5 cursor-pointer shadow-2xs',
-            'hover:border-slate-300 hover:shadow-md transition-all duration-150',
-            'border-l-[3.5px]',
+            'relative group border rounded-2xl p-3.5 cursor-pointer shadow-2xs backdrop-blur-xs',
+            'transition-all duration-150',
+            'border-l-[4px]',
+            pastelTheme.bg,
+            pastelTheme.border,
             priorityCfg.border,
-            snapshot.isDragging && 'shadow-xl ring-2 ring-indigo-500/30 scale-[1.02] bg-white',
+            snapshot.isDragging && 'shadow-xl ring-2 ring-indigo-500/40 scale-[1.02] bg-white',
           )}
         >
           {/* Labels & Menu Row */}
@@ -47,8 +50,8 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
                   <span
                     key={lbl}
                     className={cn(
-                      'text-[10px] font-semibold px-2 py-0.5 rounded-full border leading-tight',
-                      cfg?.color ?? 'bg-slate-100 text-slate-700 border-slate-200'
+                      'text-[10px] font-bold px-2 py-0.5 rounded-full border leading-tight shadow-2xs',
+                      cfg?.color ?? 'bg-white/80 text-slate-700 border-slate-200'
                     )}
                   >
                     {lbl}
@@ -61,7 +64,7 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
             <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors opacity-80 group-hover:opacity-100"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-white/70 transition-colors"
                 title="Pindahkan status kolom"
               >
                 <MoreHorizontal className="w-4 h-4" />
@@ -112,27 +115,27 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
 
           {/* Description snippet */}
           {card.description && (
-            <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed mb-2.5">
+            <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed mb-2.5">
               {card.description}
             </p>
           )}
 
           {/* Bottom Row: Deadline & Assignees */}
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 mt-1">
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-900/5 mt-1">
             {/* Deadline */}
             {card.deadline ? (
               <div
                 className={cn(
-                  'flex items-center gap-1 text-[11px] font-medium',
+                  'flex items-center gap-1 text-[11px] font-semibold',
                   overdueFlag
-                    ? 'text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md'
-                    : 'text-slate-500'
+                    ? 'text-red-700 bg-red-100/80 border border-red-200 px-1.5 py-0.5 rounded-md'
+                    : 'text-slate-600'
                 )}
               >
                 {overdueFlag ? (
                   <AlertCircle className="w-3 h-3 text-red-600" />
                 ) : (
-                  <Calendar className="w-3 h-3 text-slate-400" />
+                  <Calendar className="w-3 h-3 text-slate-500" />
                 )}
                 <span>{formatDate(card.deadline)}</span>
                 {overdueFlag && (
@@ -140,7 +143,7 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
                 )}
               </div>
             ) : (
-              <span className="text-[10px] text-slate-400">Tanpa deadline</span>
+              <span className="text-[10px] text-slate-500">Tanpa deadline</span>
             )}
 
             {/* Right side: Lock indicator + Avatar Group */}
