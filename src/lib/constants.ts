@@ -4,10 +4,54 @@ import type { ColumnData } from '../types';
 export const SCHEMA_VERSION = 2;
 
 export const COLUMNS: ColumnData[] = [
-  { id: 'todo',        title: 'To Do',       order: 0, accentColor: 'bg-slate-400' },
-  { id: 'in_progress', title: 'In Progress', order: 1, accentColor: 'bg-indigo-600' },
-  { id: 'review',      title: 'Review',      order: 2, accentColor: 'bg-amber-500' },
-  { id: 'done',        title: 'Done',        order: 3, accentColor: 'bg-emerald-600' },
+  {
+    id: 'todo',
+    title: 'To Do',
+    order: 0,
+    accentColor: 'bg-slate-500',
+    containerBg: 'bg-slate-100/60',
+    containerBorder: 'border-slate-200/90',
+    headerBg: 'bg-slate-200/50 border-b border-slate-200',
+    badgeBg: 'bg-white border-slate-200',
+    badgeText: 'text-slate-700',
+    dropHighlight: 'bg-slate-200/40 ring-1 ring-slate-300',
+  },
+  {
+    id: 'in_progress',
+    title: 'In Progress',
+    order: 1,
+    accentColor: 'bg-indigo-600',
+    containerBg: 'bg-indigo-50/50',
+    containerBorder: 'border-indigo-100',
+    headerBg: 'bg-indigo-100/50 border-b border-indigo-200/70',
+    badgeBg: 'bg-white border-indigo-200',
+    badgeText: 'text-indigo-700',
+    dropHighlight: 'bg-indigo-100/60 ring-1 ring-indigo-300',
+  },
+  {
+    id: 'review',
+    title: 'Review',
+    order: 2,
+    accentColor: 'bg-amber-500',
+    containerBg: 'bg-amber-50/45',
+    containerBorder: 'border-amber-200/70',
+    headerBg: 'bg-amber-100/50 border-b border-amber-200/70',
+    badgeBg: 'bg-white border-amber-200',
+    badgeText: 'text-amber-800',
+    dropHighlight: 'bg-amber-100/60 ring-1 ring-amber-300',
+  },
+  {
+    id: 'done',
+    title: 'Done',
+    order: 3,
+    accentColor: 'bg-emerald-600',
+    containerBg: 'bg-emerald-50/45',
+    containerBorder: 'border-emerald-200/70',
+    headerBg: 'bg-emerald-100/50 border-b border-emerald-200/70',
+    badgeBg: 'bg-white border-emerald-200',
+    badgeText: 'text-emerald-800',
+    dropHighlight: 'bg-emerald-100/60 ring-1 ring-emerald-300',
+  },
 ];
 
 export const LABELS = [

@@ -18,6 +18,12 @@ export interface ColumnData {
   order: number;
   /** Warna aksen header kolom (Tailwind class) */
   accentColor: string;
+  containerBg: string;
+  containerBorder: string;
+  headerBg: string;
+  badgeBg: string;
+  badgeText: string;
+  dropHighlight: string;
 }
 
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';

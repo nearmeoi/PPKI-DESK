@@ -18,6 +18,13 @@ interface KanbanBoardProps {
   onLogActivity: (cardId: string, action: string) => void;
 }
 
+const TAB_ACTIVE_STYLES: Record<ColumnId, string> = {
+  todo: 'bg-slate-700 text-white border-slate-700 shadow-xs',
+  in_progress: 'bg-indigo-600 text-white border-indigo-600 shadow-xs',
+  review: 'bg-amber-600 text-white border-amber-600 shadow-xs',
+  done: 'bg-emerald-600 text-white border-emerald-600 shadow-xs',
+};
+
 export function KanbanBoard({
   cards,
   filters,
@@ -111,8 +118,8 @@ export function KanbanBoard({
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all',
             activeTab === 'all'
-              ? 'bg-white text-slate-900 border-slate-300 shadow-xs'
-              : 'bg-white/60 text-slate-500 border-slate-200 hover:text-slate-800 hover:bg-white',
+              ? 'bg-white text-slate-900 border-slate-300 shadow-xs font-bold'
+              : 'bg-white/70 text-slate-500 border-slate-200 hover:text-slate-800 hover:bg-white',
           )}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -127,7 +134,7 @@ export function KanbanBoard({
           </span>
         </button>
 
-        {/* Individual Columns Tab */}
+        {/* Individual Columns Tab with Distinct Status Accent */}
         {COLUMNS.map((col) => {
           const count    = filtered.filter((c) => c.columnId === col.id).length;
           const isActive = activeTab === col.id;
@@ -138,16 +145,16 @@ export function KanbanBoard({
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all',
                 isActive
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                  : 'bg-white/60 text-slate-500 border-slate-200 hover:text-slate-800 hover:bg-white',
+                  ? TAB_ACTIVE_STYLES[col.id]
+                  : 'bg-white/70 text-slate-600 border-slate-200 hover:text-slate-900 hover:bg-white',
               )}
             >
-              <span className={cn('w-1.5 h-1.5 rounded-full', col.accentColor)} />
+              <span className={cn('w-2 h-2 rounded-full shadow-2xs', col.accentColor)} />
               <span>{col.title}</span>
               <span
                 className={cn(
                   'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
-                  isActive ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-500',
+                  isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500',
                 )}
               >
                 {count}
