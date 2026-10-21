@@ -1,7 +1,7 @@
 import type { ColumnData } from '../types';
 
-/** Versi skema data localStorage. Bumped to reset test data for production readiness. */
-export const SCHEMA_VERSION = 3;
+/** Versi skema data localStorage. Bumped to v4 to clear all mock card, schedule, and project data. */
+export const SCHEMA_VERSION = 4;
 
 export const COLUMNS: ColumnData[] = [
   {

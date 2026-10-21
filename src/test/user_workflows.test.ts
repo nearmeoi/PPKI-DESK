@@ -38,6 +38,22 @@ describe('User End-to-End Workflows & Regression Tests', () => {
 
   describe('Workflow: Kanban Task Progress Cycle', () => {
     it('transitions card from To Do -> In Progress -> Review -> Done', () => {
+      const initialCard = {
+        id: 'c-cycle-1',
+        columnId: 'todo' as const,
+        title: 'Fitur Integrasi Kalender',
+        description: 'Sinkronisasi agenda.',
+        assignedTo: ['u-akmal'],
+        createdBy: 'u-akmal',
+        deadline: '2026-11-01',
+        labels: ['Fitur'],
+        priority: 'medium' as const,
+        orderIndex: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      storage.saveCards([initialCard]);
+
       const cards = storage.getCards();
       const testCard = cards[0];
 
@@ -91,7 +107,24 @@ describe('User End-to-End Workflows & Regression Tests', () => {
 
   describe('Workflow: Project Milestone Progress Recalculation', () => {
     it('automatically calculates project progress percentage based on completed milestones', () => {
-      const prj = storage.getProjects()[0];
+      const prj = storage.addProject({
+        code: 'PRJ-NEW',
+        title: 'Pengembangan Portal PPKI',
+        description: 'Pembangunan portal utama.',
+        status: 'in_progress',
+        progress: 0,
+        startDate: '2026-10-01',
+        targetDate: '2026-11-15',
+        leaderId: 'u-akmal',
+        teamMembers: ['u-akmal', 'u-aldy'],
+        tags: ['Web'],
+        milestones: [
+          { id: 'm-1', title: 'Perencanaan', dueDate: '2026-10-10', completed: false },
+          { id: 'm-2', title: 'Implementasi', dueDate: '2026-10-25', completed: false },
+        ],
+        notes: '',
+      });
+
       const initialMilestones = prj.milestones;
       const totalCount = initialMilestones.length;
 
@@ -115,6 +148,23 @@ describe('User End-to-End Workflows & Regression Tests', () => {
 
   describe('Workflow: Search & Universal Discovery', () => {
     it('finds cards by title or description keyword', () => {
+      storage.saveCards([
+        {
+          id: 'c-search-1',
+          columnId: 'todo',
+          title: 'Setup GitHub repository',
+          description: 'Inisialisasi kode sumber proyek.',
+          assignedTo: ['u-akmal'],
+          createdBy: 'u-akmal',
+          deadline: '2026-10-30',
+          labels: ['Sistem'],
+          priority: 'high',
+          orderIndex: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]);
+
       const cards = storage.getCards();
       const query = 'repository';
       const results = cards.filter(
@@ -211,6 +261,15 @@ describe('User End-to-End Workflows & Regression Tests', () => {
       expect(updatedLogs[0].cardId).toBe('c-1');
       expect(updatedLogs[0].userName).toBe('Aldy');
       expect(updatedLogs[0].action).toBe('memindahkan kartu ke Selesai');
+    });
+  });
+
+  describe('Workflow: Supabase Cloud Client Integration', () => {
+    it('initializes supabase client with configured environment endpoint', async () => {
+      const { supabase, isSupabaseConfigured } = await import('../utils/supabase');
+      expect(supabase).toBeDefined();
+      expect(typeof supabase.from).toBe('function');
+      expect(isSupabaseConfigured).toBe(true);
     });
   });
 });

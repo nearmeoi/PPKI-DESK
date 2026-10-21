@@ -85,11 +85,31 @@ export function KanbanBoard({
         if (t) t.orderIndex = i;
       });
     } else {
+      // 1. Re-index source column without the moved card
+      const srcCards = updated
+        .filter((c) => c.columnId === srcColId && c.id !== draggableId)
+        .sort((a, b) => a.orderIndex - b.orderIndex);
+      srcCards.forEach((c, i) => {
+        const item = updated.find((x) => x.id === c.id);
+        if (item) item.orderIndex = i;
+      });
+
+      // 2. Insert into destination column at destination.index and re-index
+      const destCards = updated
+        .filter((c) => c.columnId === destColId && c.id !== draggableId)
+        .sort((a, b) => a.orderIndex - b.orderIndex);
+
       const target = updated.find((c) => c.id === draggableId);
       if (target) {
         target.columnId = destColId;
         target.updatedAt = new Date().toISOString();
+        destCards.splice(destination.index, 0, target);
+        destCards.forEach((c, i) => {
+          const item = updated.find((x) => x.id === c.id);
+          if (item) item.orderIndex = i;
+        });
       }
+
       const srcTitle  = COLUMNS.find((c) => c.id === srcColId)?.title  ?? srcColId;
       const destTitle = COLUMNS.find((c) => c.id === destColId)?.title ?? destColId;
       onLogActivity(draggableId, `memindahkan tugas dari "${srcTitle}" ke "${destTitle}"`);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { CardItem, ColumnId, BoardFilter, ActivityLog, ProjectItem, AppView } from './types';
 import { storage } from './lib/storage';
+import { supabase } from './utils/supabase';
 import { generateId } from './lib/utils';
 import { sanitizeInput } from './lib/security';
 import { useAuth } from './context/AuthContext';
@@ -26,15 +27,30 @@ export const AppContent: React.FC = () => {
   // Navigation view state: 'kanban' | 'timeline' | 'projects' | 'profile'
   const [currentView, setCurrentView] = useState<AppView>('kanban');
 
+  // State
+  const [cards, setCards] = useState<CardItem[]>(() => storage.getCards());
+  const [projects, setProjects] = useState<ProjectItem[]>(() => storage.getProjects());
+  const [activities, setActivities] = useState<ActivityLog[]>(() => storage.getActivities());
+
   // Initialize storage once
   useEffect(() => {
     storage.init();
   }, []);
 
-  // State
-  const [cards, setCards] = useState<CardItem[]>(() => storage.getCards());
-  const [projects, setProjects] = useState<ProjectItem[]>(() => storage.getProjects());
-  const [activities, setActivities] = useState<ActivityLog[]>(() => storage.getActivities());
+  // Sync Supabase remote data if tables are available
+  useEffect(() => {
+    async function syncRemoteData() {
+      try {
+        const { data: remoteCards, error } = await supabase.from('cards').select('*');
+        if (!error && remoteCards && remoteCards.length > 0) {
+          setCards(remoteCards as CardItem[]);
+        }
+      } catch {
+        // Fallback to local storage state gracefully
+      }
+    }
+    syncRemoteData();
+  }, []);
 
   const [filters, setFilters] = useState<BoardFilter>({
     searchQuery: '',

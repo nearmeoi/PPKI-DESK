@@ -23,13 +23,13 @@ export function CardItem({ card, index, onClick }: CardItemProps) {
           {...provided.dragHandleProps}
           onClick={onClick}
           className={cn(
-            'relative group border rounded-xl p-2.5 cursor-pointer shadow-2xs backdrop-blur-xs',
-            'transition-all duration-150',
+            'relative group border rounded-xl p-2.5 cursor-pointer shadow-2xs backdrop-blur-xs select-none',
+            'transition-[background-color,border-color,box-shadow] duration-150',
             'border-l-[3.5px]',
             pastelTheme.bg,
             pastelTheme.border,
             priorityCfg.border,
-            snapshot.isDragging && 'shadow-xl ring-2 ring-indigo-500/40 scale-[1.01] bg-white'
+            snapshot.isDragging && 'shadow-xl ring-2 ring-indigo-500/50 bg-white z-50 opacity-95'
           )}
         >
           {/* Judul Tugas */}

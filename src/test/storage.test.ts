@@ -71,12 +71,9 @@ describe('Storage & Business Logic Test Suite', () => {
   });
 
   describe('Card Operations (Kanban CRUD)', () => {
-    it('retrieves seed cards with valid columns', () => {
+    it('initializes with clean empty cards in production state', () => {
       const cards = storage.getCards();
-      expect(cards.length).toBeGreaterThan(0);
-      cards.forEach((c) => {
-        expect(['todo', 'in_progress', 'review', 'done']).toContain(c.columnId);
-      });
+      expect(cards).toHaveLength(0);
     });
 
     it('saves and updates cards list', () => {
@@ -114,9 +111,9 @@ describe('Storage & Business Logic Test Suite', () => {
   });
 
   describe('Projects Management (CRUD & Milestones Calculation)', () => {
-    it('retrieves initialized PPKI projects', () => {
+    it('initializes with clean empty projects in production state', () => {
       const projects = storage.getProjects();
-      expect(projects.length).toBeGreaterThan(0);
+      expect(projects).toHaveLength(0);
     });
 
     it('creates a new project and updates project status', () => {

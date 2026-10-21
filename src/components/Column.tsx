@@ -22,7 +22,7 @@ export function Column({
   return (
     <div
       className={cn(
-        'flex flex-col flex-1 min-w-[280px] max-w-full rounded-2xl border shadow-2xs overflow-hidden transition-all duration-150',
+        'flex flex-col flex-1 min-w-[280px] max-w-full rounded-2xl border shadow-2xs overflow-hidden transition-colors duration-150',
         column.containerBg,
         column.containerBorder,
       )}
