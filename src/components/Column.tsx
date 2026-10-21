@@ -12,27 +12,37 @@ interface ColumnProps {
   onMoveColumn: (cardId: string, targetColumnId: ColumnId) => void;
 }
 
-export function Column({ column, cards, onCardClick, onAddCardClick, onMoveColumn }: ColumnProps) {
+export function Column({
+  column,
+  cards,
+  onCardClick,
+  onAddCardClick,
+  onMoveColumn,
+}: ColumnProps) {
   return (
-    <div className="flex flex-col flex-1 min-w-[280px] max-w-full bg-zinc-950/40 rounded-2xl border border-zinc-800/60 overflow-hidden">
+    <div className="flex flex-col flex-1 min-w-[280px] max-w-full bg-slate-50/80 rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
       {/* Column Header */}
-      <div className="flex items-center justify-between px-3.5 py-3 border-b border-zinc-800/60">
+      <div className="flex items-center justify-between px-3.5 py-3 border-b border-slate-200/70 bg-white/60">
         <div className="flex items-center gap-2">
-          {/* Color dot accent */}
           <span className={cn('w-2 h-2 rounded-full flex-shrink-0', column.accentColor)} />
-          <h2 className="text-xs font-bold text-zinc-200 tracking-wide">{column.title}</h2>
-          <span className={cn(
-            'text-[10px] font-bold px-2 py-0.5 rounded-full border',
-            cards.length > 0
-              ? 'bg-zinc-800 text-zinc-300 border-zinc-700'
-              : 'bg-zinc-900 text-zinc-600 border-zinc-800',
-          )}>
+          <h2 className="text-xs font-bold text-slate-800 tracking-wide">
+            {column.title}
+          </h2>
+          <span
+            className={cn(
+              'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs',
+              cards.length > 0
+                ? 'bg-white text-slate-700 border-slate-200'
+                : 'bg-slate-100 text-slate-400 border-slate-200/60',
+            )}
+          >
             {cards.length}
           </span>
         </div>
+
         <button
           onClick={() => onAddCardClick(column.id)}
-          className="p-1 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+          className="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
           title={`Tambah tugas ke ${column.title}`}
         >
           <Plus className="w-4 h-4" />
@@ -46,8 +56,8 @@ export function Column({ column, cards, onCardClick, onAddCardClick, onMoveColum
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              'flex-1 p-2.5 space-y-2 min-h-[160px] transition-colors duration-150',
-              snapshot.isDraggingOver && 'bg-indigo-950/20',
+              'flex-1 p-2.5 space-y-2.5 min-h-[160px] transition-colors duration-150',
+              snapshot.isDraggingOver && 'bg-indigo-50/50 ring-1 ring-indigo-200 rounded-xl',
             )}
           >
             {cards.map((card, index) => (
@@ -65,10 +75,10 @@ export function Column({ column, cards, onCardClick, onAddCardClick, onMoveColum
             {cards.length === 0 && !snapshot.isDraggingOver && (
               <button
                 onClick={() => onAddCardClick(column.id)}
-                className="w-full h-24 border border-dashed border-zinc-800 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700 transition-colors group"
+                className="w-full h-24 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 hover:bg-white/60 transition-all group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="text-[11px] font-medium">Tambah tugas</span>
+                <span className="text-[11px] font-semibold">Tambah tugas</span>
               </button>
             )}
           </div>

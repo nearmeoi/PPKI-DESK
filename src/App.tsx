@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { CardItem, ColumnId, BoardFilter, ActivityLog } from './types';
 import { storage } from './lib/storage';
 import { generateId } from './lib/utils';
@@ -9,8 +9,7 @@ import { FilterBar } from './components/FilterBar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { CardModal } from './components/CardModal';
 import { AdminUsersModal } from './components/AdminUsersModal';
-import { EmailNotificationModal } from './components/EmailNotificationModal';
-import { SetupSupabaseModal } from './components/SetupSupabaseModal';
+import { NotificationModal } from './components/NotificationModal';
 import { AccountModal } from './components/AccountModal';
 import { ToastContainer } from './components/ToastContainer';
 
@@ -40,8 +39,7 @@ export const AppContent: React.FC = () => {
   const [defaultColumnId, setDefaultColumnId] = useState<ColumnId>('todo');
 
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
-  const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
-  const [isSupabaseSetupOpen, setIsSupabaseSetupOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
 
   // Sync cards changes to storage
@@ -133,19 +131,19 @@ export const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex justify-center text-zinc-100 antialiased selection:bg-indigo-600 selection:text-white">
-      {/* Centered Mobile-First App Container */}
-      <div className="w-full max-w-xl min-h-screen bg-zinc-900 border-x border-zinc-800/80 flex flex-col shadow-2xl relative">
+    <div className="min-h-screen bg-slate-100 flex justify-center text-slate-800 antialiased selection:bg-indigo-600 selection:text-white">
+      {/* Centered Mobile-First App Container (Dominant Clean White) */}
+      <div className="w-full max-w-xl min-h-screen bg-white border-x border-slate-200/90 flex flex-col shadow-xl relative">
         {/* App Top Navigation */}
         <Header
           onOpenAdminUsers={() => setIsAdminUsersOpen(true)}
-          onOpenEmailPreview={() => setIsEmailPreviewOpen(true)}
-          onOpenSupabaseSetup={() => setIsSupabaseSetupOpen(true)}
+          onOpenNotifications={() => setIsNotificationsOpen(true)}
           onOpenAccount={() => setIsAccountOpen(true)}
           onQuickAdd={() => handleOpenAddCard('todo')}
           onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
           isFilterOpen={isFilterOpen}
           totalCards={cards.length}
+          unreadCount={activities.length > 0 ? 1 : 0}
         />
 
         {/* Collapsible Search & Filter Bar */}
@@ -158,7 +156,7 @@ export const AppContent: React.FC = () => {
         )}
 
         {/* Main Kanban Board View */}
-        <main className="flex-1 flex flex-col min-h-0">
+        <main className="flex-1 flex flex-col min-h-0 bg-slate-50/40">
           <KanbanBoard
             cards={cards}
             filters={filters}
@@ -169,21 +167,21 @@ export const AppContent: React.FC = () => {
           />
         </main>
 
-        {/* Bottom App Bar / Info Bar */}
-        <footer className="px-4 py-2.5 bg-zinc-950/90 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
+        {/* Bottom Status / Footer Bar */}
+        <footer className="px-4 py-2.5 bg-white border-t border-slate-200/80 text-[11px] text-slate-500 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_1px_rgba(16,185,129,0.4)]" />
-            <span className="font-medium text-zinc-300">PPKI Progress</span>
-            <span className="text-zinc-600">&bull;</span>
-            <span className="text-zinc-500">v1.0-prod</span>
+            <span className="font-bold text-slate-700">PPKI Progress</span>
+            <span className="text-slate-300">&bull;</span>
+            <span className="text-slate-400">Tim Web</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-zinc-500">Akun:</span>
-            <span className="text-zinc-200 font-semibold">{currentUser.name}</span>
+            <span className="text-slate-400">Login:</span>
+            <span className="text-slate-800 font-bold">{currentUser.name}</span>
           </div>
         </footer>
 
-        {/* Toast notifications container */}
+        {/* Floating Toast notifications */}
         <ToastContainer />
 
         {/* Modals */}
@@ -201,18 +199,20 @@ export const AppContent: React.FC = () => {
           />
         )}
 
+        {/* Notifications Modal */}
+        {isNotificationsOpen && (
+          <NotificationModal
+            activities={activities}
+            onClose={() => setIsNotificationsOpen(false)}
+          />
+        )}
+
+        {/* Admin Management Modal (Opened securely from profile dropdown) */}
         {isAdminUsersOpen && isAdmin && (
           <AdminUsersModal onClose={() => setIsAdminUsersOpen(false)} />
         )}
 
-        {isEmailPreviewOpen && (
-          <EmailNotificationModal onClose={() => setIsEmailPreviewOpen(false)} />
-        )}
-
-        {isSupabaseSetupOpen && (
-          <SetupSupabaseModal onClose={() => setIsSupabaseSetupOpen(false)} />
-        )}
-
+        {/* Account & Profile Modal */}
         {isAccountOpen && (
           <AccountModal onClose={() => setIsAccountOpen(false)} />
         )}

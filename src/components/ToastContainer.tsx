@@ -9,9 +9,15 @@ const ICONS = {
 };
 
 const STYLES = {
-  success: 'bg-zinc-900 border-emerald-700/60 text-emerald-300',
-  error:   'bg-zinc-900 border-red-700/60 text-red-300',
-  info:    'bg-zinc-900 border-indigo-700/60 text-indigo-300',
+  success: 'bg-white border-emerald-200 text-emerald-800 shadow-lg',
+  error:   'bg-white border-red-200 text-red-800 shadow-lg',
+  info:    'bg-white border-indigo-200 text-indigo-800 shadow-lg',
+};
+
+const ICON_STYLES = {
+  success: 'text-emerald-600',
+  error:   'text-red-600',
+  info:    'text-indigo-600',
 };
 
 export function ToastContainer() {
@@ -27,16 +33,16 @@ export function ToastContainer() {
           <div
             key={t.id}
             className={cn(
-              'flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border shadow-xl text-xs font-medium w-full pointer-events-auto',
+              'flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border text-xs font-semibold w-full pointer-events-auto',
               'animate-in slide-in-from-bottom-2 fade-in duration-200',
               STYLES[t.type],
             )}
           >
-            <Icon className="w-4 h-4 flex-shrink-0" />
-            <span className="flex-1 text-zinc-100">{t.message}</span>
+            <Icon className={cn('w-4 h-4 flex-shrink-0', ICON_STYLES[t.type])} />
+            <span className="flex-1 text-slate-800">{t.message}</span>
             <button
               onClick={() => dismiss(t.id)}
-              className="text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="text-slate-400 hover:text-slate-600 transition-colors p-0.5 rounded-lg"
             >
               <X className="w-3.5 h-3.5" />
             </button>

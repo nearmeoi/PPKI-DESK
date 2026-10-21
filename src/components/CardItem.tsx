@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { LABELS, COLUMNS, PRIORITY_CONFIG } from '../lib/constants';
 import { formatDate, isOverdue, cn } from '../lib/utils';
 import { AvatarGroup } from './Avatar';
-import { Calendar, ArrowRight, MoreHorizontal, AlertTriangle, Lock } from 'lucide-react';
+import { Calendar, ArrowRight, MoreHorizontal, AlertCircle, Lock } from 'lucide-react';
 
 interface CardItemProps {
   card: CardItemType;
@@ -31,22 +31,25 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
           {...provided.dragHandleProps}
           onClick={onClick}
           className={cn(
-            'relative group bg-zinc-900 border border-zinc-800/80 rounded-2xl p-3.5 cursor-pointer',
-            'hover:border-zinc-700 hover:bg-zinc-800/60 transition-all duration-150',
-            'border-l-[3px]',
+            'relative group bg-white border border-slate-200/90 rounded-2xl p-3.5 cursor-pointer shadow-2xs',
+            'hover:border-slate-300 hover:shadow-md transition-all duration-150',
+            'border-l-[3.5px]',
             priorityCfg.border,
-            snapshot.isDragging && 'shadow-2xl ring-2 ring-indigo-500/40 scale-[1.02] rotate-[0.5deg]',
+            snapshot.isDragging && 'shadow-xl ring-2 ring-indigo-500/30 scale-[1.02] bg-white',
           )}
         >
-          {/* Labels & menu row */}
-          <div className="flex items-start justify-between gap-1.5 mb-2.5">
+          {/* Labels & Menu Row */}
+          <div className="flex items-start justify-between gap-1.5 mb-2">
             <div className="flex flex-wrap gap-1 min-w-0">
               {card.labels.map((lbl) => {
                 const cfg = LABELS.find((l) => l.name === lbl);
                 return (
                   <span
                     key={lbl}
-                    className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border leading-none', cfg?.color ?? 'bg-zinc-800 text-zinc-300 border-zinc-700')}
+                    className={cn(
+                      'text-[10px] font-semibold px-2 py-0.5 rounded-full border leading-tight',
+                      cfg?.color ?? 'bg-slate-100 text-slate-700 border-slate-200'
+                    )}
                   >
                     {lbl}
                   </span>
@@ -54,12 +57,12 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
               })}
             </div>
 
-            {/* Quick move menu */}
+            {/* Quick move menu button */}
             <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-1 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                title="Pindahkan tugas"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors opacity-80 group-hover:opacity-100"
+                title="Pindahkan status kolom"
               >
                 <MoreHorizontal className="w-4 h-4" />
               </button>
@@ -67,9 +70,9 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 mt-1 w-44 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-40 p-1.5 overflow-hidden">
-                    <p className="text-[10px] uppercase font-bold text-zinc-500 px-2 py-1.5 tracking-wider">
-                      Pindah ke kolom
+                  <div className="absolute right-0 mt-1 w-44 bg-white border border-slate-200 rounded-2xl shadow-xl z-40 p-1.5 overflow-hidden">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 px-2.5 py-1 tracking-wider">
+                      Pindah ke:
                     </p>
                     {COLUMNS.map((col) => {
                       const isCurrent = col.id === card.columnId;
@@ -77,19 +80,22 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
                         <button
                           key={col.id}
                           disabled={isCurrent}
-                          onClick={() => { onMoveColumn(card.id, col.id); setMenuOpen(false); }}
+                          onClick={() => {
+                            onMoveColumn(card.id, col.id);
+                            setMenuOpen(false);
+                          }}
                           className={cn(
-                            'w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between text-xs transition-colors',
+                            'w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between text-xs transition-colors',
                             isCurrent
-                              ? 'text-zinc-600 cursor-not-allowed'
-                              : 'text-zinc-300 hover:bg-zinc-800 hover:text-white',
+                              ? 'text-slate-400 cursor-not-allowed bg-slate-50'
+                              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
                           )}
                         >
                           <div className="flex items-center gap-2">
-                            <span className={cn('w-1.5 h-1.5 rounded-full', col.accentColor)} />
-                            {col.title}
+                            <span className={cn('w-2 h-2 rounded-full', col.accentColor)} />
+                            <span>{col.title}</span>
                           </div>
-                          {!isCurrent && <ArrowRight className="w-3 h-3 text-zinc-500" />}
+                          {!isCurrent && <ArrowRight className="w-3 h-3 text-slate-400" />}
                         </button>
                       );
                     })}
@@ -100,43 +106,48 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
           </div>
 
           {/* Title */}
-          <h3 className="text-xs font-semibold text-zinc-100 leading-snug line-clamp-2 mb-1">
+          <h3 className="text-xs font-bold text-slate-900 leading-snug line-clamp-2 mb-1">
             {card.title}
           </h3>
 
-          {/* Description */}
+          {/* Description snippet */}
           {card.description && (
-            <p className="text-[11px] text-zinc-500 line-clamp-2 leading-relaxed mb-2.5">
+            <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed mb-2.5">
               {card.description}
             </p>
           )}
 
-          {/* Footer meta */}
-          <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-zinc-800/50">
+          {/* Bottom Row: Deadline & Assignees */}
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 mt-1">
             {/* Deadline */}
             {card.deadline ? (
-              <div className={cn(
-                'flex items-center gap-1 text-[11px] font-medium',
-                overdueFlag
-                  ? 'text-red-400'
-                  : 'text-zinc-500',
-              )}>
-                {overdueFlag
-                  ? <AlertTriangle className="w-3 h-3" />
-                  : <Calendar className="w-3 h-3" />
-                }
+              <div
+                className={cn(
+                  'flex items-center gap-1 text-[11px] font-medium',
+                  overdueFlag
+                    ? 'text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md'
+                    : 'text-slate-500'
+                )}
+              >
+                {overdueFlag ? (
+                  <AlertCircle className="w-3 h-3 text-red-600" />
+                ) : (
+                  <Calendar className="w-3 h-3 text-slate-400" />
+                )}
                 <span>{formatDate(card.deadline)}</span>
-                {overdueFlag && <span className="text-[9px] uppercase font-bold tracking-wide">Terlambat</span>}
+                {overdueFlag && (
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Lewat</span>
+                )}
               </div>
             ) : (
-              <span className="text-[10px] text-zinc-600">Tanpa deadline</span>
+              <span className="text-[10px] text-slate-400">Tanpa deadline</span>
             )}
 
-            {/* Right side: lock + avatars */}
+            {/* Right side: Lock indicator + Avatar Group */}
             <div className="flex items-center gap-1.5">
               {!canManage && (
-                <span title="Hanya pembuat atau admin yang dapat mengubah" className="inline-flex">
-                  <Lock className="w-3 h-3 text-zinc-600" />
+                <span title="Hanya pembuat atau admin yang dapat mengubah" className="inline-flex text-slate-400">
+                  <Lock className="w-3 h-3" />
                 </span>
               )}
               <AvatarGroup

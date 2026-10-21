@@ -1,120 +1,113 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { Avatar } from './Avatar';
 import {
-  Users, Mail, Database, Search,
-  ChevronDown, ShieldCheck, User, Plus,
+  Bell,
+  Search,
+  ChevronDown,
+  ShieldCheck,
+  User,
+  Plus,
+  Users,
 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAdminUsers: () => void;
-  onOpenEmailPreview: () => void;
-  onOpenSupabaseSetup: () => void;
+  onOpenNotifications: () => void;
   onOpenAccount: () => void;
   onQuickAdd: () => void;
   onToggleFilter: () => void;
   isFilterOpen: boolean;
   totalCards: number;
+  unreadCount?: number;
 }
 
 export function Header({
-  onOpenAdminUsers, onOpenEmailPreview, onOpenSupabaseSetup,
-  onOpenAccount, onQuickAdd, onToggleFilter, isFilterOpen, totalCards,
+  onOpenAdminUsers,
+  onOpenNotifications,
+  onOpenAccount,
+  onQuickAdd,
+  onToggleFilter,
+  isFilterOpen,
+  totalCards,
+  unreadCount = 0,
 }: HeaderProps) {
   const { currentUser, users, switchUser, isAdmin, avatarColorOf } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800">
-      {/* Top brand strip */}
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
       <div className="flex items-center justify-between gap-2 px-4 py-3">
-        {/* Brand */}
+        {/* Brand & Project Info */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <img
-            src="/icon.png"
-            alt="PPKI"
-            className="w-8 h-8 rounded-lg object-contain bg-zinc-800 p-0.5 border border-zinc-700 flex-shrink-0"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
+          <div className="w-8 h-8 rounded-xl bg-slate-50 p-1 border border-slate-200/90 shadow-2xs flex items-center justify-center flex-shrink-0">
+            <img
+              src="/icon.png"
+              alt="PPKI"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h1 className="text-sm font-bold text-white tracking-tight truncate">PPKI Progress</h1>
-              <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 bg-indigo-950 text-indigo-400 rounded border border-indigo-800/60">
-                Web
+              <h1 className="text-sm font-bold text-slate-900 tracking-tight truncate">
+                PPKI Progress
+              </h1>
+              <span className="inline-flex text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 bg-indigo-50 text-indigo-700 rounded border border-indigo-200/70">
+                Tim
               </span>
             </div>
-            <p className="text-[11px] text-zinc-400 font-medium">
-              {totalCards} tugas aktif
+            <p className="text-[11px] text-slate-500 font-medium">
+              {totalCards} Tugas Terbuka
             </p>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          {/* Add card */}
+        {/* Action Controls */}
+        <div className="flex items-center gap-1.5">
+          {/* Quick Add Button */}
           <button
             onClick={onQuickAdd}
-            className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all"
+            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xs transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Tambah</span>
+            <span>Tambah</span>
           </button>
 
-          {/* Filter */}
+          {/* Search & Filter Toggle */}
           <button
             onClick={onToggleFilter}
             className={cn(
-              'p-1.5 rounded-lg border text-xs transition-colors',
+              'p-2 rounded-xl border text-xs transition-colors',
               isFilterOpen
-                ? 'bg-indigo-950/60 text-indigo-400 border-indigo-800/60'
-                : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200',
+                ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-2xs'
+                : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:text-slate-900',
             )}
             title="Pencarian & Filter"
           >
             <Search className="w-4 h-4" />
           </button>
 
-          {/* Email */}
+          {/* Notification Bell */}
           <button
-            onClick={onOpenEmailPreview}
-            className="p-1.5 rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
-            title="Notifikasi Email"
+            onClick={onOpenNotifications}
+            className="relative p-2 rounded-xl border border-slate-200/90 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs"
+            title="Pemberitahuan & Aktivitas"
           >
-            <Mail className="w-4 h-4" />
-          </button>
-
-          {/* Supabase status */}
-          <button
-            onClick={onOpenSupabaseSetup}
-            className={cn(
-              'p-1.5 rounded-lg border transition-colors',
-              isSupabaseConfigured
-                ? 'border-emerald-800/60 bg-emerald-950/40 text-emerald-400'
-                : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200',
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white" />
             )}
-            title={isSupabaseConfigured ? 'Terkoneksi Supabase' : 'Setup Database'}
-          >
-            <Database className="w-4 h-4" />
           </button>
 
-          {/* Admin users panel */}
-          {isAdmin && (
-            <button
-              onClick={onOpenAdminUsers}
-              className="p-1.5 rounded-lg border border-amber-800/50 bg-amber-950/30 text-amber-400 hover:bg-amber-950/60 transition-colors"
-              title="Kelola Tim (Admin)"
-            >
-              <Users className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Profile dropdown */}
+          {/* Profile & Settings Dropdown */}
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1 pl-1 pr-1.5 py-1 rounded-lg border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 transition-colors"
+              className="flex items-center gap-1 pl-1 pr-1.5 py-1 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 transition-colors shadow-2xs"
             >
               <Avatar
                 name={currentUser.name}
@@ -122,15 +115,18 @@ export function Header({
                 colorClass={avatarColorOf(currentUser.id)}
                 size="xs"
               />
-              <ChevronDown className="w-3 h-3 text-zinc-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
             {dropdownOpen && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-                <div className="absolute right-0 mt-2 w-60 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                  {/* Current user info */}
-                  <div className="px-3.5 pt-3.5 pb-2.5 border-b border-zinc-800">
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100">
+                  {/* Active user header */}
+                  <div className="p-3.5 bg-slate-50/70">
                     <div className="flex items-center gap-2.5">
                       <Avatar
                         name={currentUser.name}
@@ -139,62 +135,88 @@ export function Header({
                         size="sm"
                       />
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-zinc-100 truncate">{currentUser.name}</p>
-                        <p className="text-[10px] text-zinc-400 truncate">{currentUser.email}</p>
+                        <p className="text-xs font-bold text-slate-900 truncate">
+                          {currentUser.name}
+                        </p>
+                        <p className="text-[11px] text-slate-500 truncate">
+                          {currentUser.email}
+                        </p>
                       </div>
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2.5">
                       {isAdmin ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-800/50">
-                          <ShieldCheck className="w-2.5 h-2.5" /> Admin
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                          <ShieldCheck className="w-3 h-3 text-amber-600" /> Admin
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-700">
-                          <User className="w-2.5 h-2.5" /> Anggota
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                          <User className="w-3 h-3 text-slate-500" /> Anggota
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Account settings */}
-                  <div className="p-1.5">
+                  {/* Management links */}
+                  <div className="p-1.5 space-y-0.5">
+                    {/* Admin panel option inside profile menu */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          onOpenAdminUsers();
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-amber-900 hover:bg-amber-50 flex items-center gap-2.5 transition-colors"
+                      >
+                        <Users className="w-4 h-4 text-amber-600" />
+                        <span>Kelola Anggota & Tim</span>
+                      </button>
+                    )}
+
                     <button
-                      onClick={() => { setDropdownOpen(false); onOpenAccount(); }}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2 transition-colors"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        onOpenAccount();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
                     >
-                      <User className="w-3.5 h-3.5 text-zinc-400" />
-                      Pengaturan Akun & Sandi
+                      <User className="w-4 h-4 text-slate-500" />
+                      <span>Pengaturan Akun & Sandi</span>
                     </button>
                   </div>
 
-                  {/* Separator */}
-                  <div className="px-3.5 pb-1 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider border-t border-zinc-800 pt-2">
-                    Simulasi login sebagai
-                  </div>
-
-                  {/* User switcher */}
-                  <div className="p-1.5 pt-0 max-h-48 overflow-y-auto space-y-0.5">
-                    {users.map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => { switchUser(u); setDropdownOpen(false); }}
-                        className={cn(
-                          'w-full text-left px-3 py-2 rounded-xl flex items-center gap-2 transition-colors text-xs',
-                          u.id === currentUser.id
-                            ? 'bg-indigo-950/50 text-indigo-300 font-semibold'
-                            : 'text-zinc-300 hover:bg-zinc-800',
-                        )}
-                      >
-                        <Avatar
-                          name={u.name}
-                          initials={u.avatar}
-                          colorClass={avatarColorOf(u.id)}
-                          size="xs"
-                        />
-                        <span className="flex-1 truncate">{u.name}</span>
-                        <span className="text-[10px] text-zinc-500 capitalize">{u.role}</span>
-                      </button>
-                    ))}
+                  {/* Switch user simulation */}
+                  <div className="p-2">
+                    <p className="px-2 pt-1 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Beralih Pengguna
+                    </p>
+                    <div className="space-y-0.5 max-h-44 overflow-y-auto">
+                      {users.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => {
+                            switchUser(u);
+                            setDropdownOpen(false);
+                          }}
+                          className={cn(
+                            'w-full text-left px-2.5 py-1.5 rounded-xl flex items-center gap-2 text-xs transition-colors',
+                            u.id === currentUser.id
+                              ? 'bg-indigo-50 text-indigo-800 font-bold'
+                              : 'text-slate-700 hover:bg-slate-50',
+                          )}
+                        >
+                          <Avatar
+                            name={u.name}
+                            initials={u.avatar}
+                            colorClass={avatarColorOf(u.id)}
+                            size="xs"
+                          />
+                          <span className="flex-1 truncate">{u.name}</span>
+                          <span className="text-[10px] text-slate-400 capitalize">
+                            {u.role}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </>
