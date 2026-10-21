@@ -38,7 +38,8 @@ export function isValidEmail(email: string): boolean {
 export function sanitizeInput(input: string): string {
   if (!input) return '';
   return input
-    .replace(/[<>]/g, '') // remove HTML tags
+    .replace(/<[^>]*>/g, '') // remove complete HTML tags
+    .replace(/[<>]/g, '') // remove stray brackets
     .replace(/javascript:/gi, '') // prevent pseudo-protocols
     .replace(/vbscript:/gi, '')
     .replace(/data:/gi, '')

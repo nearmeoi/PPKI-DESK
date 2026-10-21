@@ -1,7 +1,7 @@
 import type { ColumnData } from '../types';
 
-/** Versi skema data localStorage. */
-export const SCHEMA_VERSION = 2;
+/** Versi skema data localStorage. Bumped to reset test data for production readiness. */
+export const SCHEMA_VERSION = 3;
 
 export const COLUMNS: ColumnData[] = [
   {

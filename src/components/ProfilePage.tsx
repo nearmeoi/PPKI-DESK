@@ -28,10 +28,8 @@ export function ProfilePage({ cards, onBackToBoard }: ProfilePageProps) {
   const { currentUser, updateDisplayName, changePassword, logout, avatarColorOf, isAdmin } = useAuth();
   const { toast } = useToast();
 
-  if (!currentUser) return null;
-
   // Personal name state
-  const [name, setName] = useState(currentUser.name);
+  const [name, setName] = useState(currentUser?.name ?? '');
   const [nameSaved, setNameSaved] = useState(false);
 
   // Password state
@@ -40,6 +38,8 @@ export function ProfilePage({ cards, onBackToBoard }: ProfilePageProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+
+  if (!currentUser) return null;
 
   // Calculate task stats
   const myCards = cards.filter((c) => c.assignedTo.includes(currentUser.id));

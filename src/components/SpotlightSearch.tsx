@@ -57,15 +57,23 @@ export function SpotlightSearch({
   const { users, isAdmin } = useAuth();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setQuery('');
+      setSelectedIndex(0);
+    }
+  }
 
   // Focus input when opened
   useEffect(() => {
     if (isOpen) {
-      setQuery('');
-      setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -334,12 +342,8 @@ export function SpotlightSearch({
     onClose,
   ]);
 
-  // Adjust selected index if it exceeds list size
-  useEffect(() => {
-    if (selectedIndex >= searchResults.length) {
-      setSelectedIndex(Math.max(0, searchResults.length - 1));
-    }
-  }, [searchResults.length, selectedIndex]);
+  // Safely clamp selected index without triggering effect cascades
+  const clampedIndex = searchResults.length === 0 ? 0 : Math.min(selectedIndex, searchResults.length - 1);
 
   // Handle keyboard navigation within the list
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -351,7 +355,7 @@ export function SpotlightSearch({
       setSelectedIndex((prev) => (prev - 1 + searchResults.length) % Math.max(1, searchResults.length));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const selected = searchResults[selectedIndex];
+      const selected = searchResults[clampedIndex];
       if (selected) {
         selected.action();
       }
@@ -418,7 +422,7 @@ export function SpotlightSearch({
           ) : (
             searchResults.map((item, idx) => {
               const Icon = item.icon;
-              const isSelected = idx === selectedIndex;
+              const isSelected = idx === clampedIndex;
 
               return (
                 <button

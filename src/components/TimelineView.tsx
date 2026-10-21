@@ -33,6 +33,46 @@ interface TimelineEntry {
   originalProject?: ProjectItem;
 }
 
+// Format date helper: "23 Okt 2026"
+function formatDateIndo(dateStr: string) {
+  if (!dateStr) return '';
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des',
+  ];
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const year = parts[0];
+    const monthIndex = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    return `${day} ${months[monthIndex]} ${year}`;
+  }
+  return dateStr;
+}
+
+// Calculate relative days
+function getRelativeDay(dateStr: string, isCompleted: boolean) {
+  if (isCompleted) return { label: 'Selesai', color: 'bg-emerald-100 text-emerald-800' };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+
+  const diffTime = target.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { label: `Terlewat ${Math.abs(diffDays)} hari`, color: 'bg-rose-100 text-rose-800' };
+  }
+  if (diffDays === 0) {
+    return { label: 'Hari ini', color: 'bg-amber-100 text-amber-900 font-bold' };
+  }
+  if (diffDays === 1) {
+    return { label: 'Besok', color: 'bg-indigo-100 text-indigo-900' };
+  }
+  return { label: `${diffDays} hari lagi`, color: 'bg-slate-100 text-slate-700' };
+}
+
 export function TimelineView({
   cards,
   projects,
@@ -42,46 +82,6 @@ export function TimelineView({
 }: TimelineViewProps) {
   const { users, avatarColorOf } = useAuth();
   const [filterType, setFilterType] = useState<'all' | 'card' | 'milestone'>('all');
-
-  // Format date helper: "23 Okt 2026"
-  const formatDateIndo = (dateStr: string) => {
-    if (!dateStr) return '';
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des',
-    ];
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      const year = parts[0];
-      const monthIndex = parseInt(parts[1], 10) - 1;
-      const day = parseInt(parts[2], 10);
-      return `${day} ${months[monthIndex]} ${year}`;
-    }
-    return dateStr;
-  };
-
-  // Calculate relative days
-  const getRelativeDay = (dateStr: string, isCompleted: boolean) => {
-    if (isCompleted) return { label: 'Selesai', color: 'bg-emerald-100 text-emerald-800' };
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(dateStr);
-    target.setHours(0, 0, 0, 0);
-
-    const diffTime = target.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      return { label: `Terlewat ${Math.abs(diffDays)} hari`, color: 'bg-rose-100 text-rose-800' };
-    }
-    if (diffDays === 0) {
-      return { label: 'Hari ini', color: 'bg-amber-100 text-amber-900 font-bold' };
-    }
-    if (diffDays === 1) {
-      return { label: 'Besok', color: 'bg-indigo-100 text-indigo-900' };
-    }
-    return { label: `${diffDays} hari lagi`, color: 'bg-slate-100 text-slate-700' };
-  };
 
   // Compile timeline items
   const timelineEntries = useMemo<TimelineEntry[]>(() => {

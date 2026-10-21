@@ -22,8 +22,6 @@ export function AdminUsersModal({ onClose }: { onClose: () => void }) {
   const { users, addUser, updateUser, resetUserPassword, deleteUser, currentUser, avatarColorOf } = useAuth();
   const { toast } = useToast();
 
-  if (!currentUser) return null;
-
   // Tabs: 'list' | 'create'
   const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,6 +52,8 @@ export function AdminUsersModal({ onClose }: { onClose: () => void }) {
       (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
     );
   }, [users, searchQuery]);
+
+  if (!currentUser) return null;
 
   // Handle Create User
   const handleAdd = async (e: React.FormEvent) => {
