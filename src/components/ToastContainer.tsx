@@ -1,24 +1,146 @@
-import { CheckCircle2, Info, XCircle, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  CheckCircle2,
+  Info,
+  AlertCircle,
+  X,
+  BellRing,
+} from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { cn } from '../lib/utils';
+import type { Toast } from '../types';
 
 const ICONS = {
   success: CheckCircle2,
-  error:   XCircle,
-  info:    Info,
+  error: AlertCircle,
+  info: Info,
+  activity: BellRing,
 };
 
-const STYLES = {
-  success: 'bg-white border-emerald-200 text-emerald-800 shadow-lg',
-  error:   'bg-white border-red-200 text-red-800 shadow-lg',
-  info:    'bg-white border-indigo-200 text-indigo-800 shadow-lg',
+const ACCENTS = {
+  success: {
+    border: 'border-emerald-200/90',
+    iconBg: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+    bar: 'bg-emerald-500',
+    badge: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    defaultTitle: 'Berhasil',
+  },
+  error: {
+    border: 'border-rose-200/90',
+    iconBg: 'bg-rose-50 text-rose-600 border-rose-200',
+    bar: 'bg-rose-500',
+    badge: 'text-rose-700 bg-rose-50 border-rose-200',
+    defaultTitle: 'Peringatan',
+  },
+  info: {
+    border: 'border-indigo-200/90',
+    iconBg: 'bg-indigo-50 text-indigo-600 border-indigo-200',
+    bar: 'bg-indigo-600',
+    badge: 'text-indigo-700 bg-indigo-50 border-indigo-200',
+    defaultTitle: 'Pemberitahuan',
+  },
+  activity: {
+    border: 'border-indigo-200',
+    iconBg: 'bg-indigo-50 text-indigo-600 border-indigo-200',
+    bar: 'bg-indigo-600',
+    badge: 'text-indigo-700 bg-indigo-50 border-indigo-200',
+    defaultTitle: 'Aktivitas Tim PPKI',
+  },
 };
 
-const ICON_STYLES = {
-  success: 'text-emerald-600',
-  error:   'text-red-600',
-  info:    'text-indigo-600',
-};
+function ToastItem({
+  toast,
+  onDismiss,
+}: {
+  toast: Toast;
+  onDismiss: (id: string) => void;
+}) {
+  const [progress, setProgress] = useState(100);
+  const accent = ACCENTS[toast.type];
+  const Icon = ICONS[toast.type];
+
+  // Micro progress countdown
+  useEffect(() => {
+    const startTime = Date.now();
+    const duration = 4000;
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+      setProgress(remaining);
+      if (remaining <= 0) clearInterval(interval);
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div
+      className={cn(
+        'w-full bg-white/95 backdrop-blur-md border rounded-2xl shadow-xl overflow-hidden pointer-events-auto transition-all',
+        'animate-in slide-in-from-top-3 sm:slide-in-from-right-8 fade-in duration-300',
+        accent.border
+      )}
+    >
+      <div className="p-3.5 space-y-2">
+        {/* Top header: App title & timestamp */}
+        <div className="flex items-center justify-between text-[10px] text-slate-400">
+          <div className="flex items-center gap-1.5 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-indigo-600" />
+            <span className="text-slate-800 font-bold uppercase tracking-wider">
+              PPKI Progress
+            </span>
+            <span>&bull;</span>
+            <span className="font-mono text-slate-500">
+              {toast.timestamp || 'Baru saja'}
+            </span>
+          </div>
+
+          <button
+            onClick={() => onDismiss(toast.id)}
+            className="text-slate-400 hover:text-slate-800 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+            title="Tutup notifikasi"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Body content */}
+        <div className="flex items-start gap-3">
+          <div
+            className={cn(
+              'w-8 h-8 rounded-xl border flex items-center justify-center flex-shrink-0 shadow-2xs',
+              accent.iconBg
+            )}
+          >
+            <Icon className="w-4 h-4" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-slate-900 truncate">
+              {toast.title || accent.defaultTitle}
+            </p>
+            <p className="text-xs text-slate-600 leading-snug mt-0.5 line-clamp-2">
+              {toast.message}
+            </p>
+            {toast.author && (
+              <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                Oleh: <strong className="text-slate-600">{toast.author}</strong>
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Progress countdown indicator line */}
+      <div className="w-full h-1 bg-slate-100">
+        <div
+          className={cn('h-full transition-all duration-75 ease-linear', accent.bar)}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export function ToastContainer() {
   const { toasts, dismiss } = useToast();
@@ -26,29 +148,13 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 items-center pointer-events-none w-full max-w-sm px-3">
-      {toasts.map((t) => {
-        const Icon = ICONS[t.type];
-        return (
-          <div
-            key={t.id}
-            className={cn(
-              'flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border text-xs font-semibold w-full pointer-events-auto',
-              'animate-in slide-in-from-bottom-2 fade-in duration-200',
-              STYLES[t.type],
-            )}
-          >
-            <Icon className={cn('w-4 h-4 flex-shrink-0', ICON_STYLES[t.type])} />
-            <span className="flex-1 text-slate-800">{t.message}</span>
-            <button
-              onClick={() => dismiss(t.id)}
-              className="text-slate-400 hover:text-slate-600 transition-colors p-0.5 rounded-lg"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        );
-      })}
+    <div
+      aria-live="polite"
+      className="fixed top-4 right-4 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-3 sm:px-0"
+    >
+      {toasts.map((t) => (
+        <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
+      ))}
     </div>
   );
 }

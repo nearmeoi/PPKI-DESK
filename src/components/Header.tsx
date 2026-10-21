@@ -14,6 +14,7 @@ import {
   Users,
   LogOut,
   Command,
+  FileText,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -21,6 +22,8 @@ interface HeaderProps {
   onOpenAccount: () => void;
   onQuickAdd: () => void;
   onOpenSpotlight: () => void;
+  onOpenSummary: () => void;
+  onSimulateTeamActivity?: () => void;
   activities: ActivityLog[];
 }
 
@@ -29,6 +32,8 @@ export function Header({
   onOpenAccount,
   onQuickAdd,
   onOpenSpotlight,
+  onOpenSummary,
+  onSimulateTeamActivity,
   activities,
 }: HeaderProps) {
   const { currentUser, logout, isAdmin, avatarColorOf } = useAuth();
@@ -84,6 +89,15 @@ export function Header({
             </kbd>
           </button>
 
+          {/* Meeting Summary & Export Button */}
+          <button
+            onClick={onOpenSummary}
+            className="p-2 rounded-xl border border-slate-200/90 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-xs transition-colors shadow-2xs cursor-pointer"
+            title="Ringkasan Rapat & Laporan Progres Tim"
+          >
+            <FileText className="w-4 h-4 text-slate-600" />
+          </button>
+
           {/* Notification Bell with Dropdown Popover */}
           <div className="relative">
             <button
@@ -110,6 +124,7 @@ export function Header({
               activities={activities}
               isOpen={notificationsOpen}
               onClose={() => setNotificationsOpen(false)}
+              onSimulateTeamActivity={onSimulateTeamActivity}
             />
           </div>
 

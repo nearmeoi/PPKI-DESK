@@ -5,6 +5,7 @@ import type { CardItem as CardItemType, ColumnId, BoardFilter } from '../types';
 import { COLUMNS } from '../lib/constants';
 import { storage } from '../lib/storage';
 import { Column } from './Column';
+import { Avatar } from './Avatar';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
 import { Layers } from 'lucide-react';
@@ -16,6 +17,7 @@ interface KanbanBoardProps {
   onCardClick: (card: CardItemType) => void;
   onAddCardClick: (columnId: ColumnId) => void;
   onLogActivity: (cardId: string, action: string) => void;
+  onFilterUserChange?: (userId: string) => void;
 }
 
 const TAB_ACTIVE_STYLES: Record<ColumnId, string> = {
@@ -32,8 +34,9 @@ export function KanbanBoard({
   onCardClick,
   onAddCardClick,
   onLogActivity,
+  onFilterUserChange,
 }: KanbanBoardProps) {
-  const { currentUser } = useAuth();
+  const { currentUser, users, avatarColorOf } = useAuth();
   const [activeTab, setActiveTab] = useState<ColumnId | 'all'>('all');
 
   // Filter cards
@@ -159,6 +162,47 @@ export function KanbanBoard({
               >
                 {count}
               </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Quick Team Member Filter Bar */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar text-xs">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex-shrink-0">
+          Anggota:
+        </span>
+        <button
+          onClick={() => onFilterUserChange && onFilterUserChange('all')}
+          className={cn(
+            'px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer flex-shrink-0',
+            filters.assignedToUserId === 'all'
+              ? 'bg-slate-800 text-white shadow-2xs'
+              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+          )}
+        >
+          Semua
+        </button>
+        {users.map((u) => {
+          const isSelected = filters.assignedToUserId === u.id;
+          return (
+            <button
+              key={u.id}
+              onClick={() => onFilterUserChange && onFilterUserChange(isSelected ? 'all' : u.id)}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer flex-shrink-0',
+                isSelected
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                  : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50'
+              )}
+            >
+              <Avatar
+                name={u.name}
+                initials={u.avatar}
+                colorClass={avatarColorOf(u.id)}
+                size="xs"
+              />
+              <span>{u.name}</span>
             </button>
           );
         })}

@@ -3,15 +3,21 @@ import type { ActivityLog } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { formatTimestamp } from '../lib/utils';
 import { Avatar } from './Avatar';
-import { Bell, CheckCheck, Clock, Inbox, X } from 'lucide-react';
+import { Bell, CheckCheck, Clock, Inbox, X, Sparkles } from 'lucide-react';
 
 interface NotificationDropdownProps {
   activities: ActivityLog[];
   isOpen: boolean;
   onClose: () => void;
+  onSimulateTeamActivity?: () => void;
 }
 
-export function NotificationDropdown({ activities, isOpen, onClose }: NotificationDropdownProps) {
+export function NotificationDropdown({
+  activities,
+  isOpen,
+  onClose,
+  onSimulateTeamActivity,
+}: NotificationDropdownProps) {
   const { users, currentUser, avatarColorOf } = useAuth();
   const [filterType, setFilterType] = useState<'all' | 'me'>('all');
   const [readIds, setReadIds] = useState<string[]>([]);
@@ -154,6 +160,22 @@ export function NotificationDropdown({ activities, isOpen, onClose }: Notificati
             })
           )}
         </div>
+
+        {/* Footer simulation action */}
+        {onSimulateTeamActivity && (
+          <div className="p-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-[10px] text-slate-400">Uji Notifikasi Real-time</span>
+            <button
+              onClick={() => {
+                onSimulateTeamActivity();
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-indigo-700 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors shadow-2xs cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3 text-indigo-600" />
+              <span>Simulasi Notif Tim</span>
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

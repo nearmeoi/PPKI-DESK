@@ -12,6 +12,7 @@ import { KanbanBoard } from './components/KanbanBoard';
 import { TimelineView } from './components/TimelineView';
 import { ProjectsView } from './components/ProjectsView';
 import { ProjectDetailModal } from './components/ProjectDetailModal';
+import { MeetingSummaryModal } from './components/MeetingSummaryModal';
 import { SpotlightSearch } from './components/SpotlightSearch';
 import { CardModal } from './components/CardModal';
 import { AdminUsersModal } from './components/AdminUsersModal';
@@ -53,6 +54,29 @@ export const AppContent: React.FC = () => {
 
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+
+  // Live Team Notification Broadcast Simulation
+  const handleSimulateTeamActivity = () => {
+    const simulationEvents = [
+      { user: 'Aldy', action: 'menyelesaikan modul antarmuka komponen kartu tugas', cardTitle: 'Setup project repository & environment' },
+      { user: 'Dwitra', action: 'mengoptimalkan indeks database & query otentikasi SHA-256', cardTitle: 'Infrastruktur Keamanan & Database Internal' },
+      { user: 'Kurni', action: 'memperbarui palet token warna pastel pada design system', cardTitle: 'Design System & Token Warna Pastel PPKI' },
+      { user: 'Satria', action: 'menjalankan audit keamanan URL injection & rate limiter', cardTitle: 'Audit Keamanan & Penetrasi Internal' },
+    ];
+    const event = simulationEvents[Math.floor(Math.random() * simulationEvents.length)];
+    const userObj = storage.getUsers().find((u) => u.name === event.user);
+    if (userObj) {
+      const updated = storage.addActivity(cards[0]?.id || 'c-1', userObj, event.action);
+      setActivities(updated);
+      toast(event.action, {
+        title: `Pemberitahuan Tim: ${event.user}`,
+        type: 'activity',
+        author: event.user,
+        duration: 5000,
+      });
+    }
+  };
 
   // Sync cards changes to storage
   useEffect(() => {
@@ -248,6 +272,8 @@ export const AppContent: React.FC = () => {
           onOpenAccount={() => setCurrentView('profile')}
           onQuickAdd={() => handleOpenAddCard('todo')}
           onOpenSpotlight={() => setIsSpotlightOpen(true)}
+          onOpenSummary={() => setIsSummaryModalOpen(true)}
+          onSimulateTeamActivity={handleSimulateTeamActivity}
           activities={activities}
         />
 
@@ -279,6 +305,9 @@ export const AppContent: React.FC = () => {
               onCardClick={handleCardClick}
               onAddCardClick={handleOpenAddCard}
               onLogActivity={handleLogActivity}
+              onFilterUserChange={(userId) =>
+                setFilters((prev) => ({ ...prev, assignedToUserId: userId }))
+              }
             />
           )}
 
@@ -356,6 +385,14 @@ export const AppContent: React.FC = () => {
           }}
           onSave={handleSaveProject}
           onDelete={handleDeleteProject}
+        />
+
+        {/* Executive Meeting & Progress Summary Modal */}
+        <MeetingSummaryModal
+          isOpen={isSummaryModalOpen}
+          onClose={() => setIsSummaryModalOpen(false)}
+          cards={cards}
+          projects={projects}
         />
 
         {/* Admin User Management Modal (Full CRUD) */}

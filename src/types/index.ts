@@ -63,8 +63,11 @@ export interface BoardFilter {
 
 export interface Toast {
   id: string;
+  title?: string;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'activity';
+  author?: string;
+  timestamp?: string;
 }
 
 export type AppView = 'kanban' | 'timeline' | 'projects' | 'profile';
