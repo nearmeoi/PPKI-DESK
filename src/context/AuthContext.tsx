@@ -1,98 +1,81 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { UserProfile, Role } from '../types';
-import { storageService } from '../lib/storage';
+import { storage } from '../lib/storage';
+import { makeInitials } from '../lib/utils';
+import { AVATAR_COLORS } from '../lib/constants';
 
-interface AuthContextType {
+interface AuthContextValue {
   currentUser: UserProfile;
   users: UserProfile[];
+  /** Index warna avatar berdasarkan posisi user di array */
+  avatarColorOf: (userId: string) => string;
   switchUser: (user: UserProfile) => void;
   addUser: (name: string, email: string, role: Role) => UserProfile;
-  updateCurrentUser: (name: string) => void;
-  deleteUser: (userId: string) => void;
+  updateDisplayName: (name: string) => void;
+  deleteUser: (userId: string) => boolean;
   isAdmin: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<UserProfile[]>(() => storageService.getUsers());
-  const [currentUser, setCurrentUserState] = useState<UserProfile>(() => storageService.getCurrentUser());
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [users, setUsers]       = useState<UserProfile[]>(() => storage.getUsers());
+  const [currentUser, setCurrentUser] = useState<UserProfile>(() => storage.getCurrentUser());
 
-  useEffect(() => {
-    storageService.saveUsers(users);
-  }, [users]);
+  const avatarColorOf = useCallback(
+    (userId: string): string => {
+      const idx = users.findIndex((u) => u.id === userId);
+      return AVATAR_COLORS[idx % AVATAR_COLORS.length];
+    },
+    [users],
+  );
 
-  const switchUser = (user: UserProfile) => {
-    setCurrentUserState(user);
-    storageService.setCurrentUser(user);
-  };
+  const switchUser = useCallback((user: UserProfile) => {
+    setCurrentUser(user);
+    storage.setCurrentUser(user);
+  }, []);
 
-  const addUser = (name: string, email: string, role: Role): UserProfile => {
-    const initials = name
-      .split(' ')
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
-
-    const newUser: UserProfile = {
-      id: 'user-' + Date.now(),
-      name,
-      email,
-      role,
-      avatar: initials || 'U',
-      createdAt: new Date().toISOString(),
-    };
-
-    const updated = [...users, newUser];
-    setUsers(updated);
-    storageService.saveUsers(updated);
+  const addUser = useCallback((name: string, email: string, role: Role): UserProfile => {
+    const newUser = storage.addUser(name, email, role);
+    setUsers(storage.getUsers());
     return newUser;
-  };
+  }, []);
 
-  const updateCurrentUser = (name: string) => {
-    const updatedUser = { ...currentUser, name };
-    setCurrentUserState(updatedUser);
-    storageService.setCurrentUser(updatedUser);
+  const updateDisplayName = useCallback((name: string) => {
+    const updated: UserProfile = { ...currentUser, name: name.trim(), avatar: makeInitials(name) };
+    setCurrentUser(updated);
+    storage.setCurrentUser(updated);
+    const next = storage.getUsers().map((u) => (u.id === updated.id ? updated : u));
+    storage.saveUsers(next);
+    setUsers(next);
+  }, [currentUser]);
 
-    const updatedUsers = users.map((u) => (u.id === currentUser.id ? updatedUser : u));
-    setUsers(updatedUsers);
-    storageService.saveUsers(updatedUsers);
-  };
-
-  const deleteUser = (userId: string) => {
-    if (userId === currentUser.id) {
-      alert('Tidak dapat menghapus akun yang sedang aktif digunakan.');
-      return;
-    }
-    const updatedUsers = users.filter((u) => u.id !== userId);
-    setUsers(updatedUsers);
-    storageService.saveUsers(updatedUsers);
-  };
-
-  const isAdmin = currentUser.role === 'admin';
+  const deleteUser = useCallback((userId: string): boolean => {
+    if (userId === currentUser.id) return false;
+    const next = users.filter((u) => u.id !== userId);
+    storage.saveUsers(next);
+    setUsers(next);
+    return true;
+  }, [currentUser.id, users]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        users,
-        switchUser,
-        addUser,
-        updateCurrentUser,
-        deleteUser,
-        isAdmin,
-      }}
-    >
+    <AuthContext.Provider value={{
+      currentUser,
+      users,
+      avatarColorOf,
+      switchUser,
+      addUser,
+      updateDisplayName,
+      deleteUser,
+      isAdmin: currentUser.role === 'admin',
+    }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth harus digunakan di dalam AuthProvider');
-  }
-  return context;
-};
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  return ctx;
+}

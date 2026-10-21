@@ -5,30 +5,36 @@ export interface UserProfile {
   name: string;
   email: string;
   role: Role;
-  avatar?: string;
-  createdAt?: string;
+  /** 2 huruf inisial untuk avatar teks */
+  avatar: string;
+  createdAt: string;
 }
 
-export type ColumnStatus = 'todo' | 'in_progress' | 'review' | 'done';
+export type ColumnId = 'todo' | 'in_progress' | 'review' | 'done';
 
 export interface ColumnData {
-  id: ColumnStatus;
+  id: ColumnId;
   title: string;
   order: number;
+  /** Warna aksen header kolom (Tailwind class) */
+  accentColor: string;
 }
 
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface CardItem {
   id: string;
-  columnId: ColumnStatus;
+  columnId: ColumnId;
   title: string;
   description: string;
-  assignedTo: string[]; // User IDs
-  createdBy: string;    // User ID
-  deadline?: string;    // YYYY-MM-DD
-  labels: string[];     // Label names
-  priority?: Priority;
+  /** Array ID anggota yang ditugaskan */
+  assignedTo: string[];
+  /** ID pembuat kartu */
+  createdBy: string;
+  /** Format YYYY-MM-DD */
+  deadline?: string;
+  labels: string[];
+  priority: Priority;
   orderIndex: number;
   createdAt: string;
   updatedAt: string;
@@ -47,4 +53,10 @@ export interface BoardFilter {
   searchQuery: string;
   assignedToUserId: string | 'all' | 'me';
   selectedLabel: string | 'all';
+}
+
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
 }

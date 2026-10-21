@@ -1,101 +1,162 @@
-import type { CardItem, UserProfile, ActivityLog } from '../types';
-import { INITIAL_CARDS, INITIAL_USERS, INITIAL_ACTIVITIES } from './mockData';
+import type { UserProfile, CardItem, ActivityLog } from '../types';
+import { SCHEMA_VERSION } from './constants';
+import { makeInitials, generateId } from './utils';
 
-const STORAGE_KEYS = {
-  CARDS: 'ppki_cards_v1',
-  USERS: 'ppki_users_v1',
-  ACTIVITIES: 'ppki_activities_v1',
-  CURRENT_USER: 'ppki_current_user_v1',
+// ---------------------------------------------------------------------------
+// Seed data tim PPKI yang sebenarnya
+// ---------------------------------------------------------------------------
+const SEED_USERS: UserProfile[] = [
+  { id: 'u-akmal',  name: 'Akmal',  email: 'akmal@ppki.id',  role: 'admin',  avatar: 'AK', createdAt: '2026-10-01T08:00:00Z' },
+  { id: 'u-aldy',   name: 'Aldy',   email: 'aldy@ppki.id',   role: 'member', avatar: 'AL', createdAt: '2026-10-01T08:05:00Z' },
+  { id: 'u-dwitra', name: 'Dwitra', email: 'dwitra@ppki.id', role: 'member', avatar: 'DW', createdAt: '2026-10-01T08:10:00Z' },
+  { id: 'u-kurni',  name: 'Kurni',  email: 'kurni@ppki.id',  role: 'member', avatar: 'KU', createdAt: '2026-10-01T08:15:00Z' },
+  { id: 'u-satria', name: 'Satria', email: 'satria@ppki.id', role: 'member', avatar: 'SA', createdAt: '2026-10-01T08:20:00Z' },
+];
+
+const SEED_CARDS: CardItem[] = [
+  {
+    id: 'c-1', columnId: 'in_progress',
+    title: 'Setup project repository & environment',
+    description: 'Inisialisasi repo GitHub, konfigurasi .env, dan pastikan semua anggota bisa menjalankan proyek lokal.',
+    assignedTo: ['u-akmal', 'u-aldy'], createdBy: 'u-akmal',
+    deadline: '2026-10-23', labels: ['Sistem'],
+    priority: 'high', orderIndex: 0,
+    createdAt: '2026-10-18T09:00:00Z', updatedAt: '2026-10-20T14:00:00Z',
+  },
+  {
+    id: 'c-2', columnId: 'todo',
+    title: 'Desain ulang halaman utama sesuai PRD',
+    description: 'Buat wireframe baru sesuai feedback tim, lalu implementasikan ke kode React.',
+    assignedTo: ['u-dwitra'], createdBy: 'u-akmal',
+    deadline: '2026-10-25', labels: ['Desain', 'Frontend'],
+    priority: 'high', orderIndex: 0,
+    createdAt: '2026-10-19T10:00:00Z', updatedAt: '2026-10-19T10:00:00Z',
+  },
+  {
+    id: 'c-3', columnId: 'todo',
+    title: 'Integrasi API backend ke komponen kartu',
+    description: 'Hubungkan endpoint REST API yang sudah tersedia dengan state management React.',
+    assignedTo: ['u-kurni'], createdBy: 'u-akmal',
+    deadline: '2026-10-27', labels: ['Frontend', 'Backend'],
+    priority: 'medium', orderIndex: 1,
+    createdAt: '2026-10-19T11:00:00Z', updatedAt: '2026-10-19T11:00:00Z',
+  },
+  {
+    id: 'c-4', columnId: 'review',
+    title: 'Implementasi sistem notifikasi email SMTP',
+    description: 'Konfigurasi Nodemailer dengan Gmail App Password. Trigger saat kartu di-assign ke anggota.',
+    assignedTo: ['u-satria'], createdBy: 'u-akmal',
+    deadline: '2026-10-26', labels: ['Backend', 'Sistem'],
+    priority: 'medium', orderIndex: 0,
+    createdAt: '2026-10-17T11:00:00Z', updatedAt: '2026-10-20T16:00:00Z',
+  },
+  {
+    id: 'c-5', columnId: 'done',
+    title: 'Penyusunan PRD PPKI Progress Web',
+    description: 'Finalisasi dokumen PRD dan distribusi ke seluruh anggota tim sebelum kickoff.',
+    assignedTo: ['u-akmal'], createdBy: 'u-akmal',
+    deadline: '2026-10-20', labels: ['Dokumen'],
+    priority: 'low', orderIndex: 0,
+    createdAt: '2026-10-10T08:00:00Z', updatedAt: '2026-10-20T17:00:00Z',
+  },
+];
+
+const SEED_ACTIVITIES: ActivityLog[] = [
+  { id: 'a-1', cardId: 'c-5', userId: 'u-akmal', userName: 'Akmal', action: 'memindahkan kartu ke Done', timestamp: '2026-10-20T17:00:00Z' },
+  { id: 'a-2', cardId: 'c-4', userId: 'u-satria', userName: 'Satria', action: 'memindahkan kartu ke Review', timestamp: '2026-10-20T16:00:00Z' },
+  { id: 'a-3', cardId: 'c-1', userId: 'u-akmal', userName: 'Akmal', action: 'memindahkan kartu ke In Progress', timestamp: '2026-10-18T09:30:00Z' },
+];
+
+// ---------------------------------------------------------------------------
+// Storage keys & version guard
+// ---------------------------------------------------------------------------
+const KEYS = {
+  VERSION:      'ppki_schema_version',
+  USERS:        'ppki_users_v2',
+  CARDS:        'ppki_cards_v2',
+  ACTIVITIES:   'ppki_activities_v2',
+  CURRENT_USER: 'ppki_current_user_v2',
 };
 
-// Storage helper
-export const storageService = {
-  getUsers(): UserProfile[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.USERS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
-      return INITIAL_USERS;
-    }
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return INITIAL_USERS;
-    }
+function migrateIfNeeded() {
+  const stored = Number(localStorage.getItem(KEYS.VERSION) ?? 0);
+  if (stored < SCHEMA_VERSION) {
+    // Hapus semua key lama
+    Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
+    // Hapus key v1 yang mungkin ada
+    ['ppki_cards_v1','ppki_users_v1','ppki_activities_v1','ppki_current_user_v1'].forEach(
+      (k) => localStorage.removeItem(k)
+    );
+    localStorage.setItem(KEYS.VERSION, String(SCHEMA_VERSION));
+  }
+}
+
+function safeParse<T>(key: string, fallback: T): T {
+  const raw = localStorage.getItem(key);
+  if (!raw) return fallback;
+  try { return JSON.parse(raw) as T; } catch { return fallback; }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+export const storage = {
+  init() {
+    migrateIfNeeded();
+    if (!localStorage.getItem(KEYS.USERS))        localStorage.setItem(KEYS.USERS,      JSON.stringify(SEED_USERS));
+    if (!localStorage.getItem(KEYS.CARDS))        localStorage.setItem(KEYS.CARDS,      JSON.stringify(SEED_CARDS));
+    if (!localStorage.getItem(KEYS.ACTIVITIES))   localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(SEED_ACTIVITIES));
+    if (!localStorage.getItem(KEYS.CURRENT_USER)) localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(SEED_USERS[0]));
   },
 
-  saveUsers(users: UserProfile[]) {
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-  },
+  getUsers:        (): UserProfile[] => safeParse(KEYS.USERS, SEED_USERS),
+  saveUsers:       (u: UserProfile[]) => localStorage.setItem(KEYS.USERS, JSON.stringify(u)),
 
-  getCards(): CardItem[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.CARDS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify(INITIAL_CARDS));
-      return INITIAL_CARDS;
-    }
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return INITIAL_CARDS;
-    }
-  },
+  getCards:        (): CardItem[] => safeParse(KEYS.CARDS, SEED_CARDS),
+  saveCards:       (c: CardItem[]) => localStorage.setItem(KEYS.CARDS, JSON.stringify(c)),
 
-  saveCards(cards: CardItem[]) {
-    localStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify(cards));
-  },
+  getActivities:   (): ActivityLog[] => safeParse(KEYS.ACTIVITIES, SEED_ACTIVITIES),
+  saveActivities:  (a: ActivityLog[]) => localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(a)),
 
-  getActivities(): ActivityLog[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.ACTIVITIES);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(INITIAL_ACTIVITIES));
-      return INITIAL_ACTIVITIES;
-    }
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return INITIAL_ACTIVITIES;
-    }
-  },
+  getCurrentUser:  (): UserProfile => safeParse(KEYS.CURRENT_USER, SEED_USERS[0]),
+  setCurrentUser:  (u: UserProfile) => localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(u)),
 
-  saveActivities(activities: ActivityLog[]) {
-    localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activities));
-  },
-
-  getCurrentUser(): UserProfile {
-    const raw = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    if (raw) {
-      try {
-        return JSON.parse(raw);
-      } catch {
-        // fallback
-      }
-    }
-    const defaultUser = INITIAL_USERS[0]; // Admin by default
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(defaultUser));
-    return defaultUser;
-  },
-
-  setCurrentUser(user: UserProfile) {
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-  },
-
-  logActivity(cardId: string, user: UserProfile, action: string) {
+  addActivity(cardId: string, user: UserProfile, action: string): ActivityLog[] {
     const activities = this.getActivities();
-    const newLog: ActivityLog = {
-      id: 'act-' + Date.now(),
+    const entry: ActivityLog = {
+      id: generateId('act'),
       cardId,
       userId: user.id,
       userName: user.name,
       action,
       timestamp: new Date().toISOString(),
     };
-    const updated = [newLog, ...activities.slice(0, 49)];
+    const updated = [entry, ...activities.slice(0, 99)];
     this.saveActivities(updated);
     return updated;
   },
 
-  canModifyCard(card: CardItem, user: UserProfile): boolean {
-    if (user.role === 'admin') return true;
-    return card.createdBy === user.id;
+  canModify(card: CardItem, user: UserProfile): boolean {
+    return user.role === 'admin' || card.createdBy === user.id;
+  },
+
+  addUser(name: string, email: string, role: 'admin' | 'member'): UserProfile {
+    const users = this.getUsers();
+    const newUser: UserProfile = {
+      id: generateId('u'),
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      role,
+      avatar: makeInitials(name),
+      createdAt: new Date().toISOString(),
+    };
+    this.saveUsers([...users, newUser]);
+    return newUser;
+  },
+
+  /** Hapus semua data & reset ke seed – digunakan admin di panel dev */
+  hardReset() {
+    Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
+    this.init();
   },
 };

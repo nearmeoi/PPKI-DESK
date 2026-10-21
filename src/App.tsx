@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import type { CardItem, ColumnStatus, BoardFilter, ActivityLog } from './types';
-import { storageService } from './lib/storage';
+import type { CardItem, ColumnId, BoardFilter, ActivityLog } from './types';
+import { storage } from './lib/storage';
+import { generateId } from './lib/utils';
 import { useAuth } from './context/AuthContext';
+import { useToast } from './context/ToastContext';
 import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
 import { KanbanBoard } from './components/KanbanBoard';
@@ -10,13 +12,20 @@ import { AdminUsersModal } from './components/AdminUsersModal';
 import { EmailNotificationModal } from './components/EmailNotificationModal';
 import { SetupSupabaseModal } from './components/SetupSupabaseModal';
 import { AccountModal } from './components/AccountModal';
+import { ToastContainer } from './components/ToastContainer';
 
 export const AppContent: React.FC = () => {
   const { currentUser, isAdmin } = useAuth();
+  const { toast } = useToast();
+
+  // Initialize storage once
+  useEffect(() => {
+    storage.init();
+  }, []);
 
   // State
-  const [cards, setCards] = useState<CardItem[]>(() => storageService.getCards());
-  const [activities, setActivities] = useState<ActivityLog[]>(() => storageService.getActivities());
+  const [cards, setCards] = useState<CardItem[]>(() => storage.getCards());
+  const [activities, setActivities] = useState<ActivityLog[]>(() => storage.getActivities());
 
   const [filters, setFilters] = useState<BoardFilter>({
     searchQuery: '',
@@ -28,26 +37,26 @@ export const AppContent: React.FC = () => {
   // Modals state
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CardItem | null>(null);
-  const [defaultColumnId, setDefaultColumnId] = useState<ColumnStatus>('todo');
+  const [defaultColumnId, setDefaultColumnId] = useState<ColumnId>('todo');
 
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
   const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
   const [isSupabaseSetupOpen, setIsSupabaseSetupOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
 
-  // Sync cards changes to localStorage
+  // Sync cards changes to storage
   useEffect(() => {
-    storageService.saveCards(cards);
+    storage.saveCards(cards);
   }, [cards]);
 
   // Log activity helper
   const handleLogActivity = (cardId: string, action: string) => {
-    const updated = storageService.logActivity(cardId, currentUser, action);
+    const updated = storage.addActivity(cardId, currentUser, action);
     setActivities(updated);
   };
 
   // Open modal to create card
-  const handleOpenAddCard = (columnId: ColumnStatus = 'todo') => {
+  const handleOpenAddCard = (columnId: ColumnId = 'todo') => {
     setEditingCard(null);
     setDefaultColumnId(columnId);
     setIsCardModalOpen(true);
@@ -62,9 +71,8 @@ export const AppContent: React.FC = () => {
   // Save (Create or Update)
   const handleSaveCard = (cardData: Partial<CardItem>) => {
     if (editingCard) {
-      // Check permission: only creator or admin
-      if (!storageService.canModifyCard(editingCard, currentUser)) {
-        alert('Anda hanya dapat mengubah kartu tugas yang Anda buat sendiri.');
+      if (!storage.canModify(editingCard, currentUser)) {
+        toast('Hanya pembuat atau admin yang dapat mengubah kartu ini.', 'error');
         return;
       }
 
@@ -78,12 +86,13 @@ export const AppContent: React.FC = () => {
           : c
       );
       setCards(updatedCards);
-      handleLogActivity(editingCard.id, 'memperbarui detail kartu tugas');
+      handleLogActivity(editingCard.id, 'memperbarui detail kartu');
+      toast('Perubahan tugas berhasil disimpan.');
     } else {
-      // Create new card
+      const col = cardData.columnId || defaultColumnId;
       const newCard: CardItem = {
-        id: 'card-' + Date.now(),
-        columnId: cardData.columnId || defaultColumnId,
+        id: generateId('c'),
+        columnId: col,
         title: cardData.title || '',
         description: cardData.description || '',
         assignedTo: cardData.assignedTo || [],
@@ -91,14 +100,15 @@ export const AppContent: React.FC = () => {
         deadline: cardData.deadline,
         labels: cardData.labels || [],
         priority: cardData.priority || 'medium',
-        orderIndex: cards.filter((c) => c.columnId === (cardData.columnId || defaultColumnId)).length,
+        orderIndex: cards.filter((c) => c.columnId === col).length,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
       const updatedCards = [newCard, ...cards];
       setCards(updatedCards);
-      handleLogActivity(newCard.id, 'membuat kartu tugas baru');
+      handleLogActivity(newCard.id, 'membuat tugas baru');
+      toast('Tugas baru berhasil ditambahkan.');
     }
 
     setIsCardModalOpen(false);
@@ -110,8 +120,8 @@ export const AppContent: React.FC = () => {
     const target = cards.find((c) => c.id === cardId);
     if (!target) return;
 
-    if (!storageService.canModifyCard(target, currentUser)) {
-      alert('Anda hanya dapat menghapus kartu tugas yang Anda buat sendiri.');
+    if (!storage.canModify(target, currentUser)) {
+      toast('Hanya pembuat atau admin yang dapat menghapus kartu ini.', 'error');
       return;
     }
 
@@ -119,6 +129,7 @@ export const AppContent: React.FC = () => {
     setCards(updated);
     setIsCardModalOpen(false);
     setEditingCard(null);
+    toast('Tugas berhasil dihapus.', 'info');
   };
 
   return (
@@ -141,13 +152,13 @@ export const AppContent: React.FC = () => {
         {isFilterOpen && (
           <FilterBar
             filters={filters}
-            onFilterChange={setFilters}
+            onChange={setFilters}
             onClose={() => setIsFilterOpen(false)}
           />
         )}
 
         {/* Main Kanban Board View */}
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col min-h-0">
           <KanbanBoard
             cards={cards}
             filters={filters}
@@ -159,16 +170,21 @@ export const AppContent: React.FC = () => {
         </main>
 
         {/* Bottom App Bar / Info Bar */}
-        <footer className="px-4 py-2.5 bg-zinc-950/80 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>PPKI Progress Web</span>
+        <footer className="px-4 py-2.5 bg-zinc-950/90 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_1px_rgba(16,185,129,0.4)]" />
+            <span className="font-medium text-zinc-300">PPKI Progress</span>
+            <span className="text-zinc-600">&bull;</span>
+            <span className="text-zinc-500">v1.0-prod</span>
           </div>
-          <div>
-            <span>Masuk sebagai: </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-zinc-500">Akun:</span>
             <span className="text-zinc-200 font-semibold">{currentUser.name}</span>
           </div>
         </footer>
+
+        {/* Toast notifications container */}
+        <ToastContainer />
 
         {/* Modals */}
         {isCardModalOpen && (

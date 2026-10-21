@@ -1,245 +1,160 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
 import type { Role } from '../types';
-import { 
-  X, 
-  UserPlus, 
-  ShieldCheck, 
-  Trash2, 
-  KeyRound, 
-  CheckCircle2, 
-  AlertCircle 
-} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { storage } from '../lib/storage';
+import { Avatar } from './Avatar';
+import { X, UserPlus, ShieldCheck, Trash2, KeyRound, AlertCircle, RotateCcw } from 'lucide-react';
+import { cn } from '../lib/utils';
 
-interface AdminUsersModalProps {
-  onClose: () => void;
-}
+export function AdminUsersModal({ onClose }: { onClose: () => void }) {
+  const { users, addUser, deleteUser, currentUser, avatarColorOf } = useAuth();
+  const { toast } = useToast();
 
-export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ onClose }) => {
-  const { users, addUser, deleteUser, currentUser } = useAuth();
+  const [name,    setName]    = useState('');
+  const [email,   setEmail]   = useState('');
+  const [role,    setRole]    = useState<Role>('member');
+  const [initPwd, setInitPwd] = useState('ppki1234');
+  const [error,   setError]   = useState('');
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<Role>('member');
-  const [initialPassword, setInitialPassword] = useState('ppki1234');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-  const [resetNotice, setResetNotice] = useState<string | null>(null);
-
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) {
-      setErrorMsg('Nama dan email anggota wajib diisi.');
-      return;
+    if (!name.trim() || !email.trim()) { setError('Nama dan email wajib diisi.'); return; }
+    if (users.some((u) => u.email.toLowerCase() === email.trim().toLowerCase())) {
+      setError('Email sudah terdaftar.'); return;
     }
-
-    if (users.some((u) => u.email.toLowerCase() === email.toLowerCase().trim())) {
-      setErrorMsg('Email ini sudah terdaftar.');
-      return;
-    }
-
     addUser(name.trim(), email.trim(), role);
-    setSuccessMsg(`Akun untuk ${name} berhasil dibuat dengan sandi default: ${initialPassword}`);
-    setName('');
-    setEmail('');
-    setRole('member');
-    setErrorMsg('');
-
-    setTimeout(() => {
-      setSuccessMsg('');
-    }, 5000);
+    setName(''); setEmail(''); setRole('member'); setError('');
+    toast(`Akun ${name.trim()} berhasil dibuat. Sandi awal: ${initPwd}`);
   };
 
-  const handleSimulateResetPassword = (userName: string) => {
-    setResetNotice(`Instruksi reset sandi berhasil dikirim ke email ${userName}. Anggota dapat mengubah sandi saat login.`);
-    setTimeout(() => setResetNotice(null), 4000);
+  const handleDelete = (userId: string, userName: string) => {
+    if (!confirm(`Hapus anggota ${userName}? Tindakan ini tidak dapat dibatalkan.`)) return;
+    const ok = deleteUser(userId);
+    if (ok) toast(`${userName} telah dihapus dari tim.`, 'info');
+    else toast('Tidak dapat menghapus akun yang sedang aktif.', 'error');
+  };
+
+  const handleResetAll = () => {
+    if (!confirm('Reset semua data ke kondisi awal? Semua kartu dan aktivitas akan dihapus.')) return;
+    storage.hardReset();
+    toast('Data berhasil direset ke seed awal.', 'info');
+    setTimeout(() => window.location.reload(), 800);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/75 backdrop-blur-sm overflow-y-auto">
-      <div 
-        className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto" onClick={onClose}>
+      <div className="w-full sm:max-w-lg bg-zinc-900 border border-zinc-800 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]" onClick={(e) => e.stopPropagation()}>
+
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-800 bg-zinc-900/80">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-amber-400" />
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-950/60 border border-amber-800/50 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-4 h-4 text-amber-400" />
+            </div>
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-white">
-                Kelola Pengguna Tim (Panel Admin)
-              </h2>
-              <p className="text-[11px] text-zinc-400">
-                Atur akun dan kata sandi awal anggota tim PPKI
-              </p>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-white">Panel Admin</h2>
+              <p className="text-[10px] text-zinc-400">Kelola anggota tim PPKI</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-          >
+          <button onClick={onClose} className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-5 space-y-5 overflow-y-auto flex-1">
-          {successMsg && (
-            <div className="flex items-center gap-2 p-3 bg-emerald-950/60 border border-emerald-900/60 text-emerald-300 rounded-xl text-xs">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {errorMsg && (
-            <div className="flex items-center gap-2 p-3 bg-red-950/60 border border-red-900/60 text-red-300 rounded-xl text-xs">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {resetNotice && (
-            <div className="flex items-center gap-2 p-3 bg-indigo-950/60 border border-indigo-900/60 text-indigo-300 rounded-xl text-xs">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>{resetNotice}</span>
-            </div>
-          )}
-
-          {/* Form Tambah Anggota */}
-          <div className="bg-zinc-950 border border-zinc-800/80 rounded-xl p-4">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200 mb-3">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {/* Add user form */}
+          <form onSubmit={handleAdd} className="bg-zinc-950 border border-zinc-800/60 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200 mb-1">
               <UserPlus className="w-4 h-4 text-indigo-400" />
-              <span>Tambah Anggota Baru</span>
+              Tambah Anggota Baru
             </div>
 
-            <form onSubmit={handleAddUser} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                    Nama Lengkap
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Contoh: Ahmad Fauzi"
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="fauzi@ppki.id"
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
+            {error && (
+              <div className="flex items-center gap-2 p-2.5 bg-red-950/50 border border-red-900/50 text-red-300 rounded-xl text-xs">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
               </div>
+            )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                    Peran (Role)
-                  </label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as Role)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="member">Anggota Tim</option>
-                    <option value="admin">Administrator</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                    Kata Sandi Awal
-                  </label>
-                  <input
-                    type="text"
-                    value={initialPassword}
-                    onChange={(e) => setInitialPassword(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[10px] font-medium text-zinc-400 mb-1">Nama Lengkap</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama anggota"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500" />
               </div>
-
-              <div className="flex justify-end pt-1">
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg transition-colors shadow-sm"
-                >
-                  Tambah Pengguna
-                </button>
+              <div>
+                <label className="block text-[10px] font-medium text-zinc-400 mb-1">Email</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nama@ppki.id"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500" />
               </div>
-            </form>
-          </div>
+            </div>
 
-          {/* Daftar Anggota */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[10px] font-medium text-zinc-400 mb-1">Peran</label>
+                <select value={role} onChange={(e) => setRole(e.target.value as Role)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                  <option value="member">Anggota</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-medium text-zinc-400 mb-1">Kata Sandi Awal</label>
+                <input type="text" value={initPwd} onChange={(e) => setInitPwd(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-indigo-500" />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button type="submit" className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl transition-colors shadow-sm active:scale-95">
+                Tambah Anggota
+              </button>
+            </div>
+          </form>
+
+          {/* User list */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-zinc-300">
-                Daftar Anggota Tim ({users.length})
-              </span>
-            </div>
-
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <p className="text-xs font-semibold text-zinc-300 mb-2.5">Daftar Anggota ({users.length})</p>
+            <div className="space-y-2">
               {users.map((u) => {
                 const isSelf = u.id === currentUser.id;
                 return (
-                  <div
-                    key={u.id}
-                    className="flex items-center justify-between p-2.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-200 flex-shrink-0">
-                        {u.avatar || u.name.charAt(0)}
-                      </div>
+                  <div key={u.id} className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800/60 rounded-2xl gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar name={u.name} initials={u.avatar} colorClass={avatarColorOf(u.id)} size="sm" />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-semibold text-zinc-200 truncate">{u.name}</p>
+                          <p className="text-xs font-semibold text-zinc-100 truncate">{u.name}</p>
                           {isSelf && (
-                            <span className="text-[9px] text-indigo-400 bg-indigo-950/60 px-1.5 py-0.2 rounded border border-indigo-900/50">
-                              Anda
-                            </span>
+                            <span className="text-[9px] font-bold text-indigo-400 bg-indigo-950/60 px-1.5 py-0.5 rounded-full border border-indigo-900/50">Anda</span>
                           )}
                         </div>
-                        <p className="text-[11px] text-zinc-400 truncate">{u.email}</p>
+                        <p className="text-[10px] text-zinc-500 truncate">{u.email}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded border capitalize ${
-                          u.role === 'admin'
-                            ? 'bg-amber-950/40 text-amber-300 border-amber-900/50'
-                            : 'bg-zinc-800 text-zinc-300 border-zinc-700'
-                        }`}
-                      >
-                        {u.role}
+                      <span className={cn(
+                        'text-[10px] font-semibold px-2 py-0.5 rounded-full border',
+                        u.role === 'admin'
+                          ? 'bg-amber-950/40 text-amber-300 border-amber-800/50'
+                          : 'bg-zinc-800 text-zinc-400 border-zinc-700',
+                      )}>
+                        {u.role === 'admin' ? 'Admin' : 'Anggota'}
                       </span>
 
                       <button
-                        type="button"
-                        onClick={() => handleSimulateResetPassword(u.name)}
-                        className="p-1.5 text-zinc-400 hover:text-amber-400 rounded-md hover:bg-zinc-800 transition-colors"
-                        title="Reset sandi anggota"
+                        onClick={() => toast(`Email reset sandi dikirim ke ${u.email}.`, 'info')}
+                        className="p-1.5 rounded-xl text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-colors"
+                        title="Kirim reset sandi"
                       >
                         <KeyRound className="w-3.5 h-3.5" />
                       </button>
 
                       {!isSelf && (
                         <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm(`Yakin ingin menghapus ${u.name}?`)) {
-                              deleteUser(u.id);
-                            }
-                          }}
-                          className="p-1.5 text-zinc-400 hover:text-red-400 rounded-md hover:bg-zinc-800 transition-colors"
+                          onClick={() => handleDelete(u.id, u.name)}
+                          className="p-1.5 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors"
                           title="Hapus anggota"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -251,18 +166,29 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ onClose }) => 
               })}
             </div>
           </div>
+
+          {/* Danger zone */}
+          <div className="border border-red-900/40 rounded-2xl p-4 bg-red-950/10 space-y-2.5">
+            <p className="text-xs font-bold text-red-400 uppercase tracking-wide">Zona Berbahaya</p>
+            <p className="text-[11px] text-zinc-500">
+              Reset seluruh data aplikasi (kartu, aktivitas, pengguna) ke kondisi seed awal. Tidak dapat dibatalkan.
+            </p>
+            <button
+              onClick={handleResetAll}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-300 bg-red-950/50 border border-red-900/50 rounded-xl hover:bg-red-900/40 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset Semua Data
+            </button>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-zinc-800 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 text-xs font-medium text-zinc-300 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
-          >
+        <div className="px-5 py-3.5 border-t border-zinc-800 flex justify-end">
+          <button onClick={onClose} className="px-4 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-xl transition-colors">
             Selesai
           </button>
         </div>
       </div>
     </div>
   );
-};
+}
