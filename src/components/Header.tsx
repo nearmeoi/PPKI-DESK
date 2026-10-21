@@ -37,6 +37,8 @@ export function Header({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
+  if (!currentUser) return null;
+
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs">
       <div className="flex items-center justify-between gap-2 px-4 py-3">

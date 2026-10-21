@@ -16,7 +16,7 @@ export function NotificationDropdown({ activities, isOpen, onClose }: Notificati
   const [filterType, setFilterType] = useState<'all' | 'me'>('all');
   const [readIds, setReadIds] = useState<string[]>([]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !currentUser) return null;
 
   // Filter activities
   const displayedActivities = activities.filter((act) => {

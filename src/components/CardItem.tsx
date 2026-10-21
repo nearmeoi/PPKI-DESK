@@ -18,7 +18,7 @@ export function CardItem({ card, index, onClick, onMoveColumn }: CardItemProps) 
   const { users, currentUser, isAdmin, avatarColorOf } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const canManage   = isAdmin || card.createdBy === currentUser.id;
+  const canManage   = isAdmin || (currentUser ? card.createdBy === currentUser.id : false);
   const overdueFlag = card.deadline ? isOverdue(card.deadline, card.columnId) : false;
   const priorityCfg = PRIORITY_CONFIG[card.priority] ?? PRIORITY_CONFIG.medium;
   const pastelTheme = getCardPastelTheme(card.id);

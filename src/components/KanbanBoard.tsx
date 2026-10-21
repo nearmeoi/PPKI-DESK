@@ -42,7 +42,7 @@ export function KanbanBoard({
     if (q && !card.title.toLowerCase().includes(q) && !card.description.toLowerCase().includes(q)) {
       return false;
     }
-    if (filters.assignedToUserId === 'me' && !card.assignedTo.includes(currentUser.id)) {
+    if (filters.assignedToUserId === 'me' && (!currentUser || !card.assignedTo.includes(currentUser.id))) {
       return false;
     }
     if (

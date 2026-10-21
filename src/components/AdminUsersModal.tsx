@@ -11,6 +11,8 @@ export function AdminUsersModal({ onClose }: { onClose: () => void }) {
   const { users, addUser, deleteUser, currentUser, avatarColorOf } = useAuth();
   const { toast } = useToast();
 
+  if (!currentUser) return null;
+
   const [name,    setName]    = useState('');
   const [email,   setEmail]   = useState('');
   const [role,    setRole]    = useState<Role>('member');

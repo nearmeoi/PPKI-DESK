@@ -50,7 +50,7 @@ export function FilterBar({ filters, onChange, onClose }: FilterBarProps) {
           className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-2xs"
         >
           <option value="all">Semua anggota</option>
-          <option value="me">Tugas saya ({currentUser.name})</option>
+          <option value="me">Tugas saya {currentUser ? `(${currentUser.name})` : ''}</option>
           {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
         </select>
 

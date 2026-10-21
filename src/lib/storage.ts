@@ -67,6 +67,14 @@ const SEED_ACTIVITIES: ActivityLog[] = [
   { id: 'a-3', cardId: 'c-1', userId: 'u-akmal', userName: 'Akmal', action: 'memindahkan kartu ke In Progress', timestamp: '2026-10-18T09:30:00Z' },
 ];
 
+const SEED_PASSWORDS: Record<string, string> = {
+  'u-akmal': 'ppki1234',
+  'u-aldy': 'ppki1234',
+  'u-dwitra': 'ppki1234',
+  'u-kurni': 'ppki1234',
+  'u-satria': 'ppki1234',
+};
+
 // ---------------------------------------------------------------------------
 // Storage keys & version guard
 // ---------------------------------------------------------------------------
@@ -76,17 +84,14 @@ const KEYS = {
   CARDS:        'ppki_cards_v2',
   ACTIVITIES:   'ppki_activities_v2',
   CURRENT_USER: 'ppki_current_user_v2',
+  PASSWORDS:    'ppki_passwords_v2',
+  SESSION:      'ppki_session_v2',
 };
 
 function migrateIfNeeded() {
   const stored = Number(localStorage.getItem(KEYS.VERSION) ?? 0);
   if (stored < SCHEMA_VERSION) {
-    // Hapus semua key lama
     Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
-    // Hapus key v1 yang mungkin ada
-    ['ppki_cards_v1','ppki_users_v1','ppki_activities_v1','ppki_current_user_v1'].forEach(
-      (k) => localStorage.removeItem(k)
-    );
     localStorage.setItem(KEYS.VERSION, String(SCHEMA_VERSION));
   }
 }
@@ -106,7 +111,9 @@ export const storage = {
     if (!localStorage.getItem(KEYS.USERS))        localStorage.setItem(KEYS.USERS,      JSON.stringify(SEED_USERS));
     if (!localStorage.getItem(KEYS.CARDS))        localStorage.setItem(KEYS.CARDS,      JSON.stringify(SEED_CARDS));
     if (!localStorage.getItem(KEYS.ACTIVITIES))   localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(SEED_ACTIVITIES));
+    if (!localStorage.getItem(KEYS.PASSWORDS))    localStorage.setItem(KEYS.PASSWORDS,  JSON.stringify(SEED_PASSWORDS));
     if (!localStorage.getItem(KEYS.CURRENT_USER)) localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(SEED_USERS[0]));
+    if (!localStorage.getItem(KEYS.SESSION))      localStorage.setItem(KEYS.SESSION,    SEED_USERS[0].id);
   },
 
   getUsers:        (): UserProfile[] => safeParse(KEYS.USERS, SEED_USERS),
@@ -119,7 +126,33 @@ export const storage = {
   saveActivities:  (a: ActivityLog[]) => localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(a)),
 
   getCurrentUser:  (): UserProfile => safeParse(KEYS.CURRENT_USER, SEED_USERS[0]),
-  setCurrentUser:  (u: UserProfile) => localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(u)),
+  setCurrentUser:  (u: UserProfile) => {
+    localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(u));
+    localStorage.setItem(KEYS.SESSION, u.id);
+  },
+
+  getSession(): string | null {
+    return localStorage.getItem(KEYS.SESSION);
+  },
+
+  clearSession() {
+    localStorage.removeItem(KEYS.SESSION);
+  },
+
+  getPasswords(): Record<string, string> {
+    return safeParse(KEYS.PASSWORDS, SEED_PASSWORDS);
+  },
+
+  getUserPassword(userId: string): string {
+    const map = this.getPasswords();
+    return map[userId] || 'ppki1234';
+  },
+
+  setUserPassword(userId: string, newPass: string) {
+    const map = this.getPasswords();
+    map[userId] = newPass;
+    localStorage.setItem(KEYS.PASSWORDS, JSON.stringify(map));
+  },
 
   addActivity(cardId: string, user: UserProfile, action: string): ActivityLog[] {
     const activities = this.getActivities();
@@ -140,7 +173,7 @@ export const storage = {
     return user.role === 'admin' || card.createdBy === user.id;
   },
 
-  addUser(name: string, email: string, role: 'admin' | 'member'): UserProfile {
+  addUser(name: string, email: string, role: 'admin' | 'member', initialPassword = 'ppki1234'): UserProfile {
     const users = this.getUsers();
     const newUser: UserProfile = {
       id: generateId('u'),
@@ -151,10 +184,10 @@ export const storage = {
       createdAt: new Date().toISOString(),
     };
     this.saveUsers([...users, newUser]);
+    this.setUserPassword(newUser.id, initialPassword);
     return newUser;
   },
 
-  /** Hapus semua data & reset ke seed – digunakan admin di panel dev */
   hardReset() {
     Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
     this.init();

@@ -9,12 +9,16 @@ import { FilterBar } from './components/FilterBar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { CardModal } from './components/CardModal';
 import { AdminUsersModal } from './components/AdminUsersModal';
-import { AccountModal } from './components/AccountModal';
+import { LoginPage } from './components/LoginPage';
+import { ProfilePage } from './components/ProfilePage';
 import { ToastContainer } from './components/ToastContainer';
 
 export const AppContent: React.FC = () => {
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, isAuthenticated, isAdmin } = useAuth();
   const { toast } = useToast();
+
+  // Navigation view state
+  const [currentView, setCurrentView] = useState<'board' | 'profile'>('board');
 
   // Initialize storage once
   useEffect(() => {
@@ -36,14 +40,22 @@ export const AppContent: React.FC = () => {
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CardItem | null>(null);
   const [defaultColumnId, setDefaultColumnId] = useState<ColumnId>('todo');
-
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
-  const [isAccountOpen, setIsAccountOpen] = useState(false);
 
   // Sync cards changes to storage
   useEffect(() => {
     storage.saveCards(cards);
   }, [cards]);
+
+  // If user is not authenticated, render Login Page
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <>
+        <LoginPage />
+        <ToastContainer />
+      </>
+    );
+  }
 
   // Log activity helper
   const handleLogActivity = (cardId: string, action: string) => {
@@ -128,6 +140,22 @@ export const AppContent: React.FC = () => {
     toast('Tugas berhasil dihapus.', 'info');
   };
 
+  // Dedicated Profile Page view
+  if (currentView === 'profile') {
+    return (
+      <div className="min-h-screen bg-slate-100 flex justify-center text-slate-800 antialiased selection:bg-indigo-600 selection:text-white">
+        <div className="w-full max-w-xl min-h-screen bg-white border-x border-slate-200/90 flex flex-col shadow-xl relative">
+          <ProfilePage
+            cards={cards}
+            onBackToBoard={() => setCurrentView('board')}
+          />
+          <ToastContainer />
+        </div>
+      </div>
+    );
+  }
+
+  // Kanban Board view
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-800 antialiased selection:bg-indigo-600 selection:text-white">
       {/* Centered Mobile-First App Container (Dominant Clean White) */}
@@ -135,7 +163,7 @@ export const AppContent: React.FC = () => {
         {/* App Top Navigation */}
         <Header
           onOpenAdminUsers={() => setIsAdminUsersOpen(true)}
-          onOpenAccount={() => setIsAccountOpen(true)}
+          onOpenAccount={() => setCurrentView('profile')}
           onQuickAdd={() => handleOpenAddCard('todo')}
           onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
           isFilterOpen={isFilterOpen}
@@ -173,8 +201,13 @@ export const AppContent: React.FC = () => {
             <span className="text-slate-400">Tim Web</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400">Login:</span>
-            <span className="text-slate-800 font-bold">{currentUser.name}</span>
+            <span className="text-slate-400">Masuk sebagai:</span>
+            <button
+              onClick={() => setCurrentView('profile')}
+              className="text-slate-800 font-bold hover:text-indigo-600 hover:underline transition-colors"
+            >
+              {currentUser.name}
+            </button>
           </div>
         </footer>
 
@@ -196,14 +229,9 @@ export const AppContent: React.FC = () => {
           />
         )}
 
-        {/* Admin Management Modal (Opened securely from profile dropdown) */}
+        {/* Admin Management Modal */}
         {isAdminUsersOpen && isAdmin && (
           <AdminUsersModal onClose={() => setIsAdminUsersOpen(false)} />
-        )}
-
-        {/* Account & Profile Modal */}
-        {isAccountOpen && (
-          <AccountModal onClose={() => setIsAccountOpen(false)} />
         )}
       </div>
     </div>

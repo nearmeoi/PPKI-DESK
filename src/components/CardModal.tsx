@@ -38,7 +38,7 @@ export function CardModal({
   const { users, currentUser, isAdmin, avatarColorOf } = useAuth();
 
   const isEditing = Boolean(card);
-  const canManage = !card || isAdmin || card.createdBy === currentUser.id;
+  const canManage = !card || isAdmin || (currentUser ? card.createdBy === currentUser.id : false);
 
   const [title,       setTitle]       = useState(card?.title       ?? '');
   const [description, setDescription] = useState(card?.description ?? '');
