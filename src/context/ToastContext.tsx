@@ -34,7 +34,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       let type: Toast['type'] = 'success';
       let title: string | undefined = undefined;
       let author: string | undefined = undefined;
-      let duration = 4000;
+      let duration = 2600;
 
       if (typeof optionsOrType === 'string') {
         type = optionsOrType;
@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         timestamp: timeStr,
       };
 
-      setToasts((prev) => [...prev.slice(-3), newToast]);
+      setToasts((prev) => [...prev.slice(-2), newToast]);
       setTimeout(() => {
         dismiss(id);
       }, duration);

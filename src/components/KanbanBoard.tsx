@@ -7,6 +7,7 @@ import { storage } from '../lib/storage';
 import { Column } from './Column';
 import { Avatar } from './Avatar';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { cn } from '../lib/utils';
 import { Layers } from 'lucide-react';
 
@@ -37,6 +38,7 @@ export function KanbanBoard({
   onFilterUserChange,
 }: KanbanBoardProps) {
   const { currentUser, users, avatarColorOf } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<ColumnId | 'all'>('all');
 
   // Filter cards
@@ -91,6 +93,8 @@ export function KanbanBoard({
       const srcTitle  = COLUMNS.find((c) => c.id === srcColId)?.title  ?? srcColId;
       const destTitle = COLUMNS.find((c) => c.id === destColId)?.title ?? destColId;
       onLogActivity(draggableId, `memindahkan tugas dari "${srcTitle}" ke "${destTitle}"`);
+      const userName = currentUser ? currentUser.name.toLowerCase() : 'tim';
+      toast(`${movedCard.title.slice(0, 18).toLowerCase()} - ${destTitle.toLowerCase()} - ${userName}`);
     }
 
     onCardsChange(updated);
@@ -107,6 +111,8 @@ export function KanbanBoard({
       c.id === cardId ? { ...c, columnId: destColId, updatedAt: new Date().toISOString() } : c
     );
     onLogActivity(cardId, `memindahkan tugas dari "${srcTitle}" ke "${destTitle}"`);
+    const userName = currentUser ? currentUser.name.toLowerCase() : 'tim';
+    toast(`${card.title.slice(0, 18).toLowerCase()} - ${destTitle.toLowerCase()} - ${userName}`);
     onCardsChange(updated);
     storage.saveCards(updated);
   };

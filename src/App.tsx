@@ -59,22 +59,17 @@ export const AppContent: React.FC = () => {
   // Live Team Notification Broadcast Simulation
   const handleSimulateTeamActivity = () => {
     const simulationEvents = [
-      { user: 'Aldy', action: 'menyelesaikan modul antarmuka komponen kartu tugas', cardTitle: 'Setup project repository & environment' },
-      { user: 'Dwitra', action: 'mengoptimalkan indeks database & query otentikasi SHA-256', cardTitle: 'Infrastruktur Keamanan & Database Internal' },
-      { user: 'Kurni', action: 'memperbarui palet token warna pastel pada design system', cardTitle: 'Design System & Token Warna Pastel PPKI' },
-      { user: 'Satria', action: 'menjalankan audit keamanan URL injection & rate limiter', cardTitle: 'Audit Keamanan & Penetrasi Internal' },
+      { task: 'implementasi', status: 'review', user: 'aldy' },
+      { task: 'skema database', status: 'in progress', user: 'dwitra' },
+      { task: 'desain pastel', status: 'done', user: 'kurni' },
+      { task: 'audit keamanan', status: 'review', user: 'satria' },
     ];
     const event = simulationEvents[Math.floor(Math.random() * simulationEvents.length)];
-    const userObj = storage.getUsers().find((u) => u.name === event.user);
+    const userObj = storage.getUsers().find((u) => u.name.toLowerCase() === event.user.toLowerCase());
     if (userObj) {
-      const updated = storage.addActivity(cards[0]?.id || 'c-1', userObj, event.action);
+      const updated = storage.addActivity(cards[0]?.id || 'c-1', userObj, `memindahkan tugas ke ${event.status}`);
       setActivities(updated);
-      toast(event.action, {
-        title: `Pemberitahuan Tim: ${event.user}`,
-        type: 'activity',
-        author: event.user,
-        duration: 5000,
-      });
+      toast(`${event.task} - ${event.status} - ${event.user}`, 'activity');
     }
   };
 
@@ -151,7 +146,8 @@ export const AppContent: React.FC = () => {
       );
       setCards(updatedCards);
       handleLogActivity(editingCard.id, 'memperbarui detail kartu');
-      toast('Perubahan tugas berhasil disimpan.');
+      const colLabel = editingCard.columnId === 'in_progress' ? 'in progress' : editingCard.columnId;
+      toast(`${(sanitizedTitle || editingCard.title).slice(0, 16).toLowerCase()} - ${colLabel} - ${currentUser.name.toLowerCase()}`);
     } else {
       const col = cardData.columnId || defaultColumnId;
       const newCard: CardItem = {
@@ -172,7 +168,8 @@ export const AppContent: React.FC = () => {
       const updatedCards = [newCard, ...cards];
       setCards(updatedCards);
       handleLogActivity(newCard.id, 'membuat tugas baru');
-      toast('Tugas baru berhasil ditambahkan.');
+      const colLabel = col === 'in_progress' ? 'in progress' : col;
+      toast(`${(sanitizedTitle || 'tugas baru').slice(0, 16).toLowerCase()} - ${colLabel} - ${currentUser.name.toLowerCase()}`);
     }
 
     setIsCardModalOpen(false);
@@ -193,7 +190,7 @@ export const AppContent: React.FC = () => {
     setCards(updated);
     setIsCardModalOpen(false);
     setEditingCard(null);
-    toast('Tugas berhasil dihapus.', 'info');
+    toast(`${target.title.slice(0, 16).toLowerCase()} - dihapus - ${currentUser.name.toLowerCase()}`, 'info');
   };
 
   // Project Handlers
