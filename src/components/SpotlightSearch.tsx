@@ -252,7 +252,7 @@ export function SpotlightSearch({
         items.push({
           id: `prj-${prj.id}`,
           category: 'Proyek',
-          title: `${prj.code} - ${prj.title}`,
+          title: prj.title,
           subtitle: `Progres: ${prj.progress}% • Target: ${prj.targetDate}`,
           icon: FolderKanban,
           badge: `${prj.progress}% Selesai`,

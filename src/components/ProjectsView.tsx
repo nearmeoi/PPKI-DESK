@@ -143,9 +143,6 @@ export function ProjectsView({
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md">
-                        {prj.code}
-                      </span>
                       <span
                         className={cn(
                           'text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs',

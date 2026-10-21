@@ -121,7 +121,7 @@ export function TimelineView({
             title: m.title,
             date: m.dueDate,
             isCompleted: m.completed,
-            sourceLabel: `Proyek ${prj.code}`,
+            sourceLabel: prj.title,
             assigneeIds: prj.teamMembers,
             originalProject: prj,
           });

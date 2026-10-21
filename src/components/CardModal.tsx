@@ -89,11 +89,6 @@ export function CardModal({
             <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">
               {isEditing ? 'Detail Kartu Tugas' : 'Buat Tugas Baru'}
             </p>
-            {card && (
-              <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                ID: {card.id.slice(0, 10)}
-              </p>
-            )}
           </div>
           <button
             onClick={onClose}

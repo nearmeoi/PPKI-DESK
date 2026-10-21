@@ -12,7 +12,6 @@ import { KanbanBoard } from './components/KanbanBoard';
 import { TimelineView } from './components/TimelineView';
 import { ProjectsView } from './components/ProjectsView';
 import { ProjectDetailModal } from './components/ProjectDetailModal';
-import { MeetingSummaryModal } from './components/MeetingSummaryModal';
 import { SpotlightSearch } from './components/SpotlightSearch';
 import { CardModal } from './components/CardModal';
 import { AdminUsersModal } from './components/AdminUsersModal';
@@ -54,7 +53,6 @@ export const AppContent: React.FC = () => {
 
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
-  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
   // Live Team Notification Broadcast Simulation
   const handleSimulateTeamActivity = () => {
@@ -267,7 +265,6 @@ export const AppContent: React.FC = () => {
           onOpenAccount={() => setCurrentView('profile')}
           onQuickAdd={() => handleOpenAddCard('todo')}
           onOpenSpotlight={() => setIsSpotlightOpen(true)}
-          onOpenSummary={() => setIsSummaryModalOpen(true)}
           onSimulateTeamActivity={handleSimulateTeamActivity}
           activities={activities}
         />
@@ -380,14 +377,6 @@ export const AppContent: React.FC = () => {
           }}
           onSave={handleSaveProject}
           onDelete={handleDeleteProject}
-        />
-
-        {/* Executive Meeting & Progress Summary Modal */}
-        <MeetingSummaryModal
-          isOpen={isSummaryModalOpen}
-          onClose={() => setIsSummaryModalOpen(false)}
-          cards={cards}
-          projects={projects}
         />
 
         {/* Admin User Management Modal (Full CRUD) */}
