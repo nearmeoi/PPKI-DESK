@@ -3,19 +3,25 @@ import type { UserProfile, Role } from '../types';
 import { storage } from '../lib/storage';
 import { makeInitials } from '../lib/utils';
 import { AVATAR_COLORS } from '../lib/constants';
+import {
+  isValidEmail,
+  sanitizeInput,
+  checkLoginRateLimit,
+  recordFailedLogin,
+  resetLoginRateLimit,
+} from '../lib/security';
 
 interface AuthContextValue {
   currentUser: UserProfile | null;
   users: UserProfile[];
   isAuthenticated: boolean;
-  /** Index warna avatar berdasarkan posisi user di array */
   avatarColorOf: (userId: string) => string;
-  login: (email: string, password: string) => { success: boolean; error?: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   switchUser: (user: UserProfile) => void;
-  addUser: (name: string, email: string, role: Role, initialPassword?: string) => UserProfile;
+  addUser: (name: string, email: string, role: Role, initialPassword?: string) => Promise<UserProfile>;
   updateDisplayName: (name: string) => void;
-  changePassword: (oldPass: string, newPass: string) => { success: boolean; error?: string };
+  changePassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
   deleteUser: (userId: string) => boolean;
   isAdmin: boolean;
 }
@@ -44,20 +50,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const login = useCallback(
-    (email: string, password: string): { success: boolean; error?: string } => {
-      const trimmedEmail = email.trim().toLowerCase();
-      const user = users.find((u) => u.email.toLowerCase() === trimmedEmail);
+    async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+      // 1. Rate limiting / brute-force protection
+      const rateLimit = checkLoginRateLimit();
+      if (rateLimit.isLocked) {
+        return {
+          success: false,
+          error: `Terlalu banyak percobaan gagal. Silakan tunggu ${rateLimit.remainingSeconds} detik lagi demi keamanan.`,
+        };
+      }
+
+      // 2. Strict input sanitization & format validation
+      const sanitizedEmail = sanitizeInput(email).toLowerCase();
+      if (!isValidEmail(sanitizedEmail)) {
+        return { success: false, error: 'Format email tidak valid atau mengandung karakter dilarang.' };
+      }
+
+      if (!password || password.length > 100) {
+        return { success: false, error: 'Kata sandi tidak valid.' };
+      }
+
+      // 3. User lookup
+      const user = users.find((u) => u.email.toLowerCase() === sanitizedEmail);
       if (!user) {
-        return { success: false, error: 'Email tidak ditemukan dalam tim PPKI.' };
+        recordFailedLogin();
+        return { success: false, error: 'Email atau kata sandi tidak sesuai.' };
       }
 
-      const validPassword = storage.getUserPassword(user.id);
-      if (password !== validPassword) {
-        return { success: false, error: 'Kata sandi tidak sesuai.' };
+      // 4. Cryptographic password verification (Salted SHA-256)
+      const isValid = await storage.verifyUserPassword(user.id, password);
+      if (!isValid) {
+        const afterFail = recordFailedLogin();
+        if (afterFail.isLocked) {
+          return {
+            success: false,
+            error: `Terlalu banyak percobaan gagal. Akun dikunci sementara selama ${afterFail.remainingSeconds} detik.`,
+          };
+        }
+        return { success: false, error: 'Email atau kata sandi tidak sesuai.' };
       }
 
+      // 5. Successful login: reset rate limit & issue cryptographically random session
+      resetLoginRateLimit();
+      storage.createSession(user.id);
       setCurrentUser(user);
-      storage.setCurrentUser(user);
       return { success: true };
     },
     [users],
@@ -69,67 +105,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const switchUser = useCallback((user: UserProfile) => {
+    storage.createSession(user.id);
     setCurrentUser(user);
-    storage.setCurrentUser(user);
   }, []);
 
-  const addUser = useCallback((name: string, email: string, role: Role, initialPassword = 'ppki1234'): UserProfile => {
-    const newUser = storage.addUser(name, email, role, initialPassword);
-    setUsers(storage.getUsers());
-    return newUser;
-  }, []);
+  const addUser = useCallback(
+    async (name: string, email: string, role: Role, initialPassword = 'ppki1234'): Promise<UserProfile> => {
+      const cleanName = sanitizeInput(name);
+      const cleanEmail = sanitizeInput(email).toLowerCase();
+      const newUser = await storage.addUser(cleanName, cleanEmail, role, initialPassword);
+      setUsers(storage.getUsers());
+      return newUser;
+    },
+    [],
+  );
 
-  const updateDisplayName = useCallback((name: string) => {
-    if (!currentUser) return;
-    const updated: UserProfile = { ...currentUser, name: name.trim(), avatar: makeInitials(name) };
-    setCurrentUser(updated);
-    storage.setCurrentUser(updated);
-    const next = storage.getUsers().map((u) => (u.id === updated.id ? updated : u));
-    storage.saveUsers(next);
-    setUsers(next);
-  }, [currentUser]);
+  const updateDisplayName = useCallback(
+    (name: string) => {
+      if (!currentUser) return;
+      const cleanName = sanitizeInput(name);
+      const updated: UserProfile = { ...currentUser, name: cleanName, avatar: makeInitials(cleanName) };
+      setCurrentUser(updated);
+      const next = storage.getUsers().map((u) => (u.id === updated.id ? updated : u));
+      storage.saveUsers(next);
+      setUsers(next);
+    },
+    [currentUser],
+  );
 
   const changePassword = useCallback(
-    (oldPass: string, newPass: string): { success: boolean; error?: string } => {
+    async (oldPass: string, newPass: string): Promise<{ success: boolean; error?: string }> => {
       if (!currentUser) return { success: false, error: 'Belum masuk ke akun.' };
 
-      const currentStoredPass = storage.getUserPassword(currentUser.id);
-      if (oldPass !== currentStoredPass) {
-        return { success: false, error: 'Kata sandi saat ini tidak cocok.' };
-      }
-      if (newPass.length < 6) {
-        return { success: false, error: 'Kata sandi baru minimal 6 karakter.' };
+      // Verify current password
+      const isOldValid = await storage.verifyUserPassword(currentUser.id, oldPass);
+      if (!isOldValid) {
+        return { success: false, error: 'Kata sandi saat ini tidak sesuai.' };
       }
 
-      storage.setUserPassword(currentUser.id, newPass);
+      if (newPass.length < 6 || newPass.length > 100) {
+        return { success: false, error: 'Kata sandi baru minimal 6 dan maksimal 100 karakter.' };
+      }
+
+      await storage.setUserPassword(currentUser.id, newPass);
       return { success: true };
     },
     [currentUser],
   );
 
-  const deleteUser = useCallback((userId: string): boolean => {
-    if (!currentUser || userId === currentUser.id) return false;
-    const next = users.filter((u) => u.id !== userId);
-    storage.saveUsers(next);
-    setUsers(next);
-    return true;
-  }, [currentUser, users]);
+  const deleteUser = useCallback(
+    (userId: string): boolean => {
+      if (!currentUser || userId === currentUser.id) return false;
+      const next = users.filter((u) => u.id !== userId);
+      storage.saveUsers(next);
+      setUsers(next);
+      return true;
+    },
+    [currentUser, users],
+  );
 
   return (
-    <AuthContext.Provider value={{
-      currentUser,
-      users,
-      isAuthenticated: currentUser !== null,
-      avatarColorOf,
-      login,
-      logout,
-      switchUser,
-      addUser,
-      updateDisplayName,
-      changePassword,
-      deleteUser,
-      isAdmin: currentUser?.role === 'admin',
-    }}>
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        users,
+        isAuthenticated: currentUser !== null,
+        avatarColorOf,
+        login,
+        logout,
+        switchUser,
+        addUser,
+        updateDisplayName,
+        changePassword,
+        deleteUser,
+        isAdmin: currentUser?.role === 'admin',
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

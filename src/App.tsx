@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { CardItem, ColumnId, BoardFilter, ActivityLog } from './types';
 import { storage } from './lib/storage';
 import { generateId } from './lib/utils';
+import { sanitizeInput } from './lib/security';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 import { Header } from './components/Header';
@@ -78,6 +79,9 @@ export const AppContent: React.FC = () => {
 
   // Save (Create or Update)
   const handleSaveCard = (cardData: Partial<CardItem>) => {
+    const sanitizedTitle = cardData.title ? sanitizeInput(cardData.title) : '';
+    const sanitizedDescription = cardData.description ? sanitizeInput(cardData.description) : '';
+
     if (editingCard) {
       if (!storage.canModify(editingCard, currentUser)) {
         toast('Hanya pembuat atau admin yang dapat mengubah kartu ini.', 'error');
@@ -89,6 +93,8 @@ export const AppContent: React.FC = () => {
           ? {
               ...c,
               ...cardData,
+              title: sanitizedTitle || c.title,
+              description: sanitizedDescription,
               updatedAt: new Date().toISOString(),
             }
           : c
@@ -101,8 +107,8 @@ export const AppContent: React.FC = () => {
       const newCard: CardItem = {
         id: generateId('c'),
         columnId: col,
-        title: cardData.title || '',
-        description: cardData.description || '',
+        title: sanitizedTitle || 'Tugas Baru',
+        description: sanitizedDescription,
         assignedTo: cardData.assignedTo || [],
         createdBy: currentUser.id,
         deadline: cardData.deadline,

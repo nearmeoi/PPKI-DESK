@@ -1,6 +1,7 @@
 import type { UserProfile, CardItem, ActivityLog } from '../types';
 import { SCHEMA_VERSION } from './constants';
 import { makeInitials, generateId } from './utils';
+import { hashPassword, generateSecureToken } from './security';
 
 // ---------------------------------------------------------------------------
 // Seed data tim PPKI yang sebenarnya
@@ -67,14 +68,6 @@ const SEED_ACTIVITIES: ActivityLog[] = [
   { id: 'a-3', cardId: 'c-1', userId: 'u-akmal', userName: 'Akmal', action: 'memindahkan kartu ke In Progress', timestamp: '2026-10-18T09:30:00Z' },
 ];
 
-const SEED_PASSWORDS: Record<string, string> = {
-  'u-akmal': 'ppki1234',
-  'u-aldy': 'ppki1234',
-  'u-dwitra': 'ppki1234',
-  'u-kurni': 'ppki1234',
-  'u-satria': 'ppki1234',
-};
-
 // ---------------------------------------------------------------------------
 // Storage keys & version guard
 // ---------------------------------------------------------------------------
@@ -84,9 +77,15 @@ const KEYS = {
   CARDS:        'ppki_cards_v2',
   ACTIVITIES:   'ppki_activities_v2',
   CURRENT_USER: 'ppki_current_user_v2',
-  PASSWORDS:    'ppki_passwords_v2',
-  SESSION:      'ppki_session_v2',
+  PASSWORD_HASHES: 'ppki_password_hashes_v2',
+  SECURE_SESSION:  'ppki_secure_session_v2',
 };
+
+interface SecureSession {
+  userId: string;
+  token: string;
+  expiresAt: number;
+}
 
 function migrateIfNeeded() {
   const stored = Number(localStorage.getItem(KEYS.VERSION) ?? 0);
@@ -106,14 +105,28 @@ function safeParse<T>(key: string, fallback: T): T {
 // Public API
 // ---------------------------------------------------------------------------
 export const storage = {
-  init() {
+  async init() {
     migrateIfNeeded();
-    if (!localStorage.getItem(KEYS.USERS))        localStorage.setItem(KEYS.USERS,      JSON.stringify(SEED_USERS));
-    if (!localStorage.getItem(KEYS.CARDS))        localStorage.setItem(KEYS.CARDS,      JSON.stringify(SEED_CARDS));
-    if (!localStorage.getItem(KEYS.ACTIVITIES))   localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(SEED_ACTIVITIES));
-    if (!localStorage.getItem(KEYS.PASSWORDS))    localStorage.setItem(KEYS.PASSWORDS,  JSON.stringify(SEED_PASSWORDS));
-    if (!localStorage.getItem(KEYS.CURRENT_USER)) localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(SEED_USERS[0]));
-    if (!localStorage.getItem(KEYS.SESSION))      localStorage.setItem(KEYS.SESSION,    SEED_USERS[0].id);
+    if (!localStorage.getItem(KEYS.USERS)) {
+      localStorage.setItem(KEYS.USERS, JSON.stringify(SEED_USERS));
+    }
+    if (!localStorage.getItem(KEYS.CARDS)) {
+      localStorage.setItem(KEYS.CARDS, JSON.stringify(SEED_CARDS));
+    }
+    if (!localStorage.getItem(KEYS.ACTIVITIES)) {
+      localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(SEED_ACTIVITIES));
+    }
+
+    // Seed default password hashes if not initialized
+    const existingHashes = this.getPasswordHashes();
+    if (Object.keys(existingHashes).length === 0) {
+      const defaultHash = await hashPassword('ppki1234');
+      const seedMap: Record<string, string> = {};
+      SEED_USERS.forEach((u) => {
+        seedMap[u.id] = defaultHash;
+      });
+      this.savePasswordHashes(seedMap);
+    }
   },
 
   getUsers:        (): UserProfile[] => safeParse(KEYS.USERS, SEED_USERS),
@@ -125,33 +138,71 @@ export const storage = {
   getActivities:   (): ActivityLog[] => safeParse(KEYS.ACTIVITIES, SEED_ACTIVITIES),
   saveActivities:  (a: ActivityLog[]) => localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(a)),
 
-  getCurrentUser:  (): UserProfile => safeParse(KEYS.CURRENT_USER, SEED_USERS[0]),
-  setCurrentUser:  (u: UserProfile) => {
-    localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(u));
-    localStorage.setItem(KEYS.SESSION, u.id);
+  getPasswordHashes(): Record<string, string> {
+    return safeParse(KEYS.PASSWORD_HASHES, {});
+  },
+
+  savePasswordHashes(map: Record<string, string>) {
+    localStorage.setItem(KEYS.PASSWORD_HASHES, JSON.stringify(map));
+  },
+
+  async setUserPassword(userId: string, plainTextPassword: string) {
+    const hashed = await hashPassword(plainTextPassword);
+    const hashes = this.getPasswordHashes();
+    hashes[userId] = hashed;
+    this.savePasswordHashes(hashes);
+  },
+
+  async verifyUserPassword(userId: string, inputPassword: string): Promise<boolean> {
+    const hashes = this.getPasswordHashes();
+    const storedHash = hashes[userId];
+    const inputHash = await hashPassword(inputPassword);
+
+    if (storedHash) {
+      return storedHash === inputHash;
+    }
+
+    // Fallback if user was created before hash table: check default ppki1234
+    const defaultHash = await hashPassword('ppki1234');
+    if (inputHash === defaultHash) {
+      // Auto-upgrade user hash
+      hashes[userId] = defaultHash;
+      this.savePasswordHashes(hashes);
+      return true;
+    }
+
+    return false;
+  },
+
+  createSession(userId: string): SecureSession {
+    const session: SecureSession = {
+      userId,
+      token: generateSecureToken(),
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    };
+    localStorage.setItem(KEYS.SECURE_SESSION, JSON.stringify(session));
+    return session;
   },
 
   getSession(): string | null {
-    return localStorage.getItem(KEYS.SESSION);
+    const raw = localStorage.getItem(KEYS.SECURE_SESSION);
+    if (!raw) return null;
+    try {
+      const session = JSON.parse(raw) as SecureSession;
+      if (session.expiresAt < Date.now()) {
+        this.clearSession();
+        return null;
+      }
+      return session.userId;
+    } catch {
+      this.clearSession();
+      return null;
+    }
   },
 
   clearSession() {
-    localStorage.removeItem(KEYS.SESSION);
-  },
-
-  getPasswords(): Record<string, string> {
-    return safeParse(KEYS.PASSWORDS, SEED_PASSWORDS);
-  },
-
-  getUserPassword(userId: string): string {
-    const map = this.getPasswords();
-    return map[userId] || 'ppki1234';
-  },
-
-  setUserPassword(userId: string, newPass: string) {
-    const map = this.getPasswords();
-    map[userId] = newPass;
-    localStorage.setItem(KEYS.PASSWORDS, JSON.stringify(map));
+    localStorage.removeItem(KEYS.SECURE_SESSION);
+    localStorage.removeItem(KEYS.CURRENT_USER);
   },
 
   addActivity(cardId: string, user: UserProfile, action: string): ActivityLog[] {
@@ -173,7 +224,7 @@ export const storage = {
     return user.role === 'admin' || card.createdBy === user.id;
   },
 
-  addUser(name: string, email: string, role: 'admin' | 'member', initialPassword = 'ppki1234'): UserProfile {
+  async addUser(name: string, email: string, role: 'admin' | 'member', initialPassword = 'ppki1234'): Promise<UserProfile> {
     const users = this.getUsers();
     const newUser: UserProfile = {
       id: generateId('u'),
@@ -184,7 +235,7 @@ export const storage = {
       createdAt: new Date().toISOString(),
     };
     this.saveUsers([...users, newUser]);
-    this.setUserPassword(newUser.id, initialPassword);
+    await this.setUserPassword(newUser.id, initialPassword);
     return newUser;
   },
 

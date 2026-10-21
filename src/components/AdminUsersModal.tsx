@@ -19,7 +19,7 @@ export function AdminUsersModal({ onClose }: { onClose: () => void }) {
   const [initPwd, setInitPwd] = useState('ppki1234');
   const [error,   setError]   = useState('');
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) {
       setError('Nama dan email wajib diisi.');
@@ -29,7 +29,7 @@ export function AdminUsersModal({ onClose }: { onClose: () => void }) {
       setError('Email sudah terdaftar.');
       return;
     }
-    addUser(name.trim(), email.trim(), role);
+    await addUser(name.trim(), email.trim(), role, initPwd);
     setName('');
     setEmail('');
     setRole('member');

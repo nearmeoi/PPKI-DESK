@@ -58,7 +58,7 @@ export function ProfilePage({ cards, onBackToBoard }: ProfilePageProps) {
     setTimeout(() => setNameSaved(false), 3000);
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess('');
@@ -80,7 +80,7 @@ export function ProfilePage({ cards, onBackToBoard }: ProfilePageProps) {
       return;
     }
 
-    const res = changePassword(oldPassword, newPassword);
+    const res = await changePassword(oldPassword, newPassword);
     if (res.success) {
       setPasswordSuccess('Kata sandi berhasil diperbarui.');
       setOldPassword('');
