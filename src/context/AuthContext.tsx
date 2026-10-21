@@ -20,6 +20,8 @@ interface AuthContextValue {
   logout: () => void;
   switchUser: (user: UserProfile) => void;
   addUser: (name: string, email: string, role: Role, initialPassword?: string) => Promise<UserProfile>;
+  updateUser: (userId: string, data: Partial<UserProfile>) => boolean;
+  resetUserPassword: (userId: string, newPassword?: string) => Promise<boolean>;
   updateDisplayName: (name: string) => void;
   changePassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
   deleteUser: (userId: string) => boolean;
@@ -120,6 +122,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const updateUser = useCallback(
+    (userId: string, data: Partial<UserProfile>): boolean => {
+      const sanitizedData: Partial<UserProfile> = {};
+      if (data.name) sanitizedData.name = sanitizeInput(data.name);
+      if (data.email) sanitizedData.email = sanitizeInput(data.email).toLowerCase();
+      if (data.role) sanitizedData.role = data.role;
+
+      const updated = storage.updateUser(userId, sanitizedData);
+      setUsers(updated);
+      if (currentUser?.id === userId) {
+        const active = updated.find((u) => u.id === userId);
+        if (active) setCurrentUser(active);
+      }
+      return true;
+    },
+    [currentUser],
+  );
+
+  const resetUserPassword = useCallback(
+    async (userId: string, newPassword = 'ppki1234'): Promise<boolean> => {
+      await storage.setUserPassword(userId, newPassword);
+      return true;
+    },
+    [],
+  );
+
   const updateDisplayName = useCallback(
     (name: string) => {
       if (!currentUser) return;
@@ -175,6 +203,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         switchUser,
         addUser,
+        updateUser,
+        resetUserPassword,
         updateDisplayName,
         changePassword,
         deleteUser,

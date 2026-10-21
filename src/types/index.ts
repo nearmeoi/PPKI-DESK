@@ -66,3 +66,33 @@ export interface Toast {
   message: string;
   type: 'success' | 'error' | 'info';
 }
+
+export type AppView = 'kanban' | 'timeline' | 'projects' | 'profile';
+
+export type ProjectStatus = 'planning' | 'in_progress' | 'completed' | 'on_hold';
+
+export interface ProjectMilestone {
+  id: string;
+  title: string;
+  dueDate: string;
+  completed: boolean;
+}
+
+export interface ProjectItem {
+  id: string;
+  title: string;
+  code: string;
+  description: string;
+  status: ProjectStatus;
+  progress: number; // 0 to 100
+  startDate: string; // YYYY-MM-DD
+  targetDate: string; // YYYY-MM-DD
+  leaderId: string; // User ID
+  teamMembers: string[]; // Array of User IDs
+  tags: string[];
+  milestones: ProjectMilestone[];
+  budgetEstimated?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}

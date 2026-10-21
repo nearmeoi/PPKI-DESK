@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
-import type { CardItem, ColumnId, BoardFilter, ActivityLog } from './types';
+import { useState, useEffect, useMemo } from 'react';
+import type { CardItem, ColumnId, BoardFilter, ActivityLog, ProjectItem, AppView } from './types';
 import { storage } from './lib/storage';
 import { generateId } from './lib/utils';
 import { sanitizeInput } from './lib/security';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 import { Header } from './components/Header';
+import { NavigationMenu } from './components/NavigationMenu';
 import { FilterBar } from './components/FilterBar';
 import { KanbanBoard } from './components/KanbanBoard';
+import { TimelineView } from './components/TimelineView';
+import { ProjectsView } from './components/ProjectsView';
+import { ProjectDetailModal } from './components/ProjectDetailModal';
+import { SpotlightSearch } from './components/SpotlightSearch';
 import { CardModal } from './components/CardModal';
 import { AdminUsersModal } from './components/AdminUsersModal';
 import { LoginPage } from './components/LoginPage';
@@ -15,11 +20,11 @@ import { ProfilePage } from './components/ProfilePage';
 import { ToastContainer } from './components/ToastContainer';
 
 export const AppContent: React.FC = () => {
-  const { currentUser, isAuthenticated, isAdmin } = useAuth();
+  const { currentUser, isAuthenticated, isAdmin, logout } = useAuth();
   const { toast } = useToast();
 
-  // Navigation view state
-  const [currentView, setCurrentView] = useState<'board' | 'profile'>('board');
+  // Navigation view state: 'kanban' | 'timeline' | 'projects' | 'profile'
+  const [currentView, setCurrentView] = useState<AppView>('kanban');
 
   // Initialize storage once
   useEffect(() => {
@@ -28,6 +33,7 @@ export const AppContent: React.FC = () => {
 
   // State
   const [cards, setCards] = useState<CardItem[]>(() => storage.getCards());
+  const [projects, setProjects] = useState<ProjectItem[]>(() => storage.getProjects());
   const [activities, setActivities] = useState<ActivityLog[]>(() => storage.getActivities());
 
   const [filters, setFilters] = useState<BoardFilter>({
@@ -41,12 +47,32 @@ export const AppContent: React.FC = () => {
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CardItem | null>(null);
   const [defaultColumnId, setDefaultColumnId] = useState<ColumnId>('todo');
+
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
+
+  const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
 
   // Sync cards changes to storage
   useEffect(() => {
     storage.saveCards(cards);
   }, [cards]);
+
+  // Sync projects changes to storage
+  useEffect(() => {
+    storage.saveProjects(projects);
+  }, [projects]);
+
+  // Calculate timeline count
+  const timelineCount = useMemo(() => {
+    const cardDeadlines = cards.filter((c) => c.deadline).length;
+    const projectMilestones = projects.reduce(
+      (acc, prj) => acc + prj.milestones.filter((m) => m.dueDate).length,
+      0
+    );
+    return cardDeadlines + projectMilestones;
+  }, [cards, projects]);
 
   // If user is not authenticated, render Login Page
   if (!isAuthenticated || !currentUser) {
@@ -77,7 +103,7 @@ export const AppContent: React.FC = () => {
     setIsCardModalOpen(true);
   };
 
-  // Save (Create or Update)
+  // Save Card (Create or Update)
   const handleSaveCard = (cardData: Partial<CardItem>) => {
     const sanitizedTitle = cardData.title ? sanitizeInput(cardData.title) : '';
     const sanitizedDescription = cardData.description ? sanitizeInput(cardData.description) : '';
@@ -146,14 +172,65 @@ export const AppContent: React.FC = () => {
     toast('Tugas berhasil dihapus.', 'info');
   };
 
-  // Dedicated Profile Page view
+  // Project Handlers
+  const handleOpenAddProject = () => {
+    setEditingProject(null);
+    setIsProjectModalOpen(true);
+  };
+
+  const handleSelectProject = (project: ProjectItem) => {
+    setEditingProject(project);
+    setIsProjectModalOpen(true);
+  };
+
+  const handleSaveProject = (projectData: Partial<ProjectItem>) => {
+    const sanitizedTitle = projectData.title ? sanitizeInput(projectData.title) : '';
+    const sanitizedDesc = projectData.description ? sanitizeInput(projectData.description) : '';
+
+    if (editingProject) {
+      const updated = storage.updateProject(editingProject.id, {
+        ...projectData,
+        title: sanitizedTitle || editingProject.title,
+        description: sanitizedDesc,
+      });
+      setProjects(updated);
+      toast('Data proyek berhasil diperbarui.');
+    } else {
+      const created = storage.addProject({
+        title: sanitizedTitle || 'Proyek Baru PPKI',
+        code: projectData.code || `PRJ-0${projects.length + 1}`,
+        description: sanitizedDesc,
+        status: projectData.status || 'in_progress',
+        progress: projectData.progress || 0,
+        startDate: projectData.startDate || new Date().toISOString().split('T')[0],
+        targetDate: projectData.targetDate || new Date().toISOString().split('T')[0],
+        leaderId: projectData.leaderId || currentUser.id,
+        teamMembers: projectData.teamMembers || [currentUser.id],
+        tags: projectData.tags || ['PPKI'],
+        milestones: projectData.milestones || [],
+        notes: projectData.notes || '',
+      });
+      setProjects([created, ...projects]);
+      toast('Proyek baru berhasil direncanakan.');
+    }
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    const updated = storage.deleteProject(projectId);
+    setProjects(updated);
+    setIsProjectModalOpen(false);
+    setEditingProject(null);
+    toast('Proyek berhasil dihapus.', 'info');
+  };
+
+  // If in dedicated Profile view
   if (currentView === 'profile') {
     return (
       <div className="min-h-screen bg-slate-100 flex justify-center text-slate-800 antialiased selection:bg-indigo-600 selection:text-white">
         <div className="w-full max-w-xl min-h-screen bg-white border-x border-slate-200/90 flex flex-col shadow-xl relative">
           <ProfilePage
             cards={cards}
-            onBackToBoard={() => setCurrentView('board')}
+            onBackToBoard={() => setCurrentView('kanban')}
           />
           <ToastContainer />
         </div>
@@ -161,24 +238,30 @@ export const AppContent: React.FC = () => {
     );
   }
 
-  // Kanban Board view
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-800 antialiased selection:bg-indigo-600 selection:text-white">
       {/* Centered Mobile-First App Container (Dominant Clean White) */}
       <div className="w-full max-w-xl min-h-screen bg-white border-x border-slate-200/90 flex flex-col shadow-xl relative">
-        {/* App Top Navigation */}
+        {/* App Top Header */}
         <Header
           onOpenAdminUsers={() => setIsAdminUsersOpen(true)}
           onOpenAccount={() => setCurrentView('profile')}
           onQuickAdd={() => handleOpenAddCard('todo')}
-          onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
-          isFilterOpen={isFilterOpen}
-          totalCards={cards.length}
+          onOpenSpotlight={() => setIsSpotlightOpen(true)}
           activities={activities}
         />
 
-        {/* Collapsible Search & Filter Bar */}
-        {isFilterOpen && (
+        {/* Main Workspace Navigation Menu (Papan Tugas, Jadwal Timeline, Proyek) */}
+        <NavigationMenu
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          cardsCount={cards.length}
+          projectsCount={projects.length}
+          timelineCount={timelineCount}
+        />
+
+        {/* Collapsible Search & Filter Bar for Kanban */}
+        {currentView === 'kanban' && isFilterOpen && (
           <FilterBar
             filters={filters}
             onChange={setFilters}
@@ -186,39 +269,67 @@ export const AppContent: React.FC = () => {
           />
         )}
 
-        {/* Main Kanban Board View */}
+        {/* View Switcher Output */}
         <main className="flex-1 flex flex-col min-h-0 bg-slate-50/40">
-          <KanbanBoard
-            cards={cards}
-            filters={filters}
-            onCardsChange={setCards}
-            onCardClick={handleCardClick}
-            onAddCardClick={handleOpenAddCard}
-            onLogActivity={handleLogActivity}
-          />
+          {currentView === 'kanban' && (
+            <KanbanBoard
+              cards={cards}
+              filters={filters}
+              onCardsChange={setCards}
+              onCardClick={handleCardClick}
+              onAddCardClick={handleOpenAddCard}
+              onLogActivity={handleLogActivity}
+            />
+          )}
+
+          {currentView === 'timeline' && (
+            <TimelineView
+              cards={cards}
+              projects={projects}
+              onCardClick={handleCardClick}
+              onProjectClick={handleSelectProject}
+              onAddCardClick={() => handleOpenAddCard('todo')}
+            />
+          )}
+
+          {currentView === 'projects' && (
+            <ProjectsView
+              projects={projects}
+              onSelectProject={handleSelectProject}
+              onAddProjectClick={handleOpenAddProject}
+            />
+          )}
         </main>
 
-        {/* Bottom Status / Footer Bar */}
-        <footer className="px-4 py-2.5 bg-white border-t border-slate-200/80 text-[11px] text-slate-500 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_1px_rgba(16,185,129,0.4)]" />
-            <span className="font-bold text-slate-700">PPKI Progress</span>
-            <span className="text-slate-300">&bull;</span>
-            <span className="text-slate-400">Tim Web</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-400">Masuk sebagai:</span>
-            <button
-              onClick={() => setCurrentView('profile')}
-              className="text-slate-800 font-bold hover:text-indigo-600 hover:underline transition-colors"
-            >
-              {currentUser.name}
-            </button>
-          </div>
+        {/* Clean Footer Bar with @PPKI2026 */}
+        <footer className="px-4 py-2.5 bg-white border-t border-slate-200/80 text-center text-[11px] text-slate-400 font-medium tracking-wide">
+          @PPKI2026
         </footer>
 
         {/* Floating Toast notifications */}
         <ToastContainer />
+
+        {/* Mac-style Universal Spotlight Search */}
+        <SpotlightSearch
+          isOpen={isSpotlightOpen}
+          onClose={() => setIsSpotlightOpen(false)}
+          cards={cards}
+          projects={projects}
+          onSelectCard={(c) => {
+            setCurrentView('kanban');
+            handleCardClick(c);
+          }}
+          onSelectProject={(p) => {
+            setCurrentView('projects');
+            handleSelectProject(p);
+          }}
+          onNavigateView={(v) => setCurrentView(v)}
+          onQuickAddCard={() => handleOpenAddCard('todo')}
+          onQuickAddProject={handleOpenAddProject}
+          onOpenAdminUsers={() => setIsAdminUsersOpen(true)}
+          onOpenProfile={() => setCurrentView('profile')}
+          onLogout={logout}
+        />
 
         {/* Modals */}
         {isCardModalOpen && (
@@ -235,7 +346,19 @@ export const AppContent: React.FC = () => {
           />
         )}
 
-        {/* Admin Management Modal */}
+        {/* Project Detail & Milestones Modal */}
+        <ProjectDetailModal
+          project={editingProject}
+          isOpen={isProjectModalOpen}
+          onClose={() => {
+            setIsProjectModalOpen(false);
+            setEditingProject(null);
+          }}
+          onSave={handleSaveProject}
+          onDelete={handleDeleteProject}
+        />
+
+        {/* Admin User Management Modal (Full CRUD) */}
         {isAdminUsersOpen && isAdmin && (
           <AdminUsersModal onClose={() => setIsAdminUsersOpen(false)} />
         )}
