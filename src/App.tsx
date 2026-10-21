@@ -59,17 +59,17 @@ export const AppContent: React.FC = () => {
   // Live Team Notification Broadcast Simulation
   const handleSimulateTeamActivity = () => {
     const simulationEvents = [
-      { task: 'implementasi', status: 'review', user: 'aldy' },
-      { task: 'skema database', status: 'in progress', user: 'dwitra' },
-      { task: 'desain pastel', status: 'done', user: 'kurni' },
-      { task: 'audit keamanan', status: 'review', user: 'satria' },
+      { user: 'Aldy', action: 'memindahkan tugas ke Review' },
+      { user: 'Dwitra', action: 'mengoptimalkan performa database' },
+      { user: 'Kurni', action: 'memperbarui token warna pastel desain' },
+      { user: 'Satria', action: 'menyelesaikan audit keamanan sistem' },
     ];
     const event = simulationEvents[Math.floor(Math.random() * simulationEvents.length)];
     const userObj = storage.getUsers().find((u) => u.name.toLowerCase() === event.user.toLowerCase());
     if (userObj) {
-      const updated = storage.addActivity(cards[0]?.id || 'c-1', userObj, `memindahkan tugas ke ${event.status}`);
+      const updated = storage.addActivity(cards[0]?.id || 'c-1', userObj, event.action);
       setActivities(updated);
-      toast(`${event.task} - ${event.status} - ${event.user}`, 'activity');
+      toast(`${event.user} ${event.action}`, 'activity');
     }
   };
 
@@ -146,8 +146,7 @@ export const AppContent: React.FC = () => {
       );
       setCards(updatedCards);
       handleLogActivity(editingCard.id, 'memperbarui detail kartu');
-      const colLabel = editingCard.columnId === 'in_progress' ? 'in progress' : editingCard.columnId;
-      toast(`${(sanitizedTitle || editingCard.title).slice(0, 16).toLowerCase()} - ${colLabel} - ${currentUser.name.toLowerCase()}`);
+      toast('Perubahan tugas berhasil disimpan.');
     } else {
       const col = cardData.columnId || defaultColumnId;
       const newCard: CardItem = {
@@ -168,8 +167,7 @@ export const AppContent: React.FC = () => {
       const updatedCards = [newCard, ...cards];
       setCards(updatedCards);
       handleLogActivity(newCard.id, 'membuat tugas baru');
-      const colLabel = col === 'in_progress' ? 'in progress' : col;
-      toast(`${(sanitizedTitle || 'tugas baru').slice(0, 16).toLowerCase()} - ${colLabel} - ${currentUser.name.toLowerCase()}`);
+      toast('Tugas baru berhasil ditambahkan.');
     }
 
     setIsCardModalOpen(false);
@@ -190,7 +188,7 @@ export const AppContent: React.FC = () => {
     setCards(updated);
     setIsCardModalOpen(false);
     setEditingCard(null);
-    toast(`${target.title.slice(0, 16).toLowerCase()} - dihapus - ${currentUser.name.toLowerCase()}`, 'info');
+    toast('Tugas berhasil dihapus.', 'info');
   };
 
   // Project Handlers

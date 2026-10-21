@@ -93,8 +93,7 @@ export function KanbanBoard({
       const srcTitle  = COLUMNS.find((c) => c.id === srcColId)?.title  ?? srcColId;
       const destTitle = COLUMNS.find((c) => c.id === destColId)?.title ?? destColId;
       onLogActivity(draggableId, `memindahkan tugas dari "${srcTitle}" ke "${destTitle}"`);
-      const userName = currentUser ? currentUser.name.toLowerCase() : 'tim';
-      toast(`${movedCard.title.slice(0, 18).toLowerCase()} - ${destTitle.toLowerCase()} - ${userName}`);
+      toast(`Tugas dipindahkan ke ${destTitle}`);
     }
 
     onCardsChange(updated);
@@ -111,8 +110,7 @@ export function KanbanBoard({
       c.id === cardId ? { ...c, columnId: destColId, updatedAt: new Date().toISOString() } : c
     );
     onLogActivity(cardId, `memindahkan tugas dari "${srcTitle}" ke "${destTitle}"`);
-    const userName = currentUser ? currentUser.name.toLowerCase() : 'tim';
-    toast(`${card.title.slice(0, 18).toLowerCase()} - ${destTitle.toLowerCase()} - ${userName}`);
+    toast(`Tugas dipindahkan ke ${destTitle}`);
     onCardsChange(updated);
     storage.saveCards(updated);
   };
