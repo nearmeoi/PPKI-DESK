@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { isValidEmail, checkLoginRateLimit } from '../lib/security';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ShieldAlert } from 'lucide-react';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -177,12 +177,6 @@ export function LoginPage() {
             {!loading && <ArrowRight className="w-3.5 h-3.5" />}
           </button>
         </form>
-
-        {/* Security badge note */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Verifikasi Terproteksi SHA-256</span>
-        </div>
       </div>
     </div>
   );
